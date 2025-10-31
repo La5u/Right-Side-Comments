@@ -1,0 +1,20 @@
+#secondary #comments {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: #0f0f0f;
+  padding: 0px;
+}
+
+/* removed the left border line */
+#below {
+  margin-top: 10px;
+}
+
+#secondary #comments #header ytd-comments-header-renderer {
+  max-height: calc(100vh - 80px) !important;
+  overflow-y: auto;
+  margin-top: 0 !important;  /* 🔹 removes space above comments */
+}
+
+
+
