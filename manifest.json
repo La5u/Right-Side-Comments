@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Comments Sidebar",
-  "version": "1.2",
+  "name": "Right Side Commments",
+  "version": "1.3",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
   "permissions": ["storage", "activeTab", "tabs", "scripting"],
   "host_permissions": ["https://www.youtube.com/*"],

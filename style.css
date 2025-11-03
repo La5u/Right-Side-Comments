@@ -1,8 +1,7 @@
-#secondary #comments {
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-  background: #0f0f0f;
-  padding: 0px;
+#comments {
+  overflow-y: auto !important;
+  position: relative !important;
+  max-height: calc(100vh + var(--desc-height, 350px)) !important;
 }
 
 /* removed the left border line */
@@ -11,8 +10,8 @@
 }
 
 #secondary #comments #header ytd-comments-header-renderer {
-  max-height: calc(100vh - 80px) !important;
-  overflow-y: auto;
+  /*max-height: calc(100vh - 80px) !important;
+  overflow-y: auto;*/
   margin-top: 0 !important;  /* 🔹 removes space above comments */
 }
 
