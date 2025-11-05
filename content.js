@@ -13,13 +13,16 @@ const ensureCommentsLoaded = async () => {
 };
 
 function expandDescription() {
-  const expandNow = () => qs(".button.ytd-text-inline-expander#expand")?.click();
+  const expandNow = () => qs("tp-yt-paper-button#expand.button.ytd-text-inline-expander")?.click();
   if (expandNow()) return; // works instantly on reloads
 
   const obs = new MutationObserver(() => {
     if (expandNow()) obs.disconnect();
   });
-  obs.observe(document.body, { childList: true, subtree: true });
+  const container = document.querySelector('ytd-text-inline-expander');
+  if (container) {
+    obs.observe(container, { childList: true, subtree: true });
+  }
 }
 
 async function toggleSidebar(on) {
