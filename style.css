@@ -1,19 +1,2 @@
-#comments {
-  overflow-y: auto !important;
-  position: relative !important;
-  max-height: calc(100vh + var(--desc-height, 350px)) !important;
-}
-
-/* removed the left border line */
-#below {
-  margin-top: 10px;
-}
-
-#secondary #comments #header ytd-comments-header-renderer {
-  /*max-height: calc(100vh - 80px) !important;
-  overflow-y: auto;*/
-  margin-top: 0 !important;  /* 🔹 removes space above comments */
-}
-
 
 

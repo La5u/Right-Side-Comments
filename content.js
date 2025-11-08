@@ -42,21 +42,25 @@ function expandDescription() {
 /** Moves comments into the sidebar (on=true) or restores them (on=false) */
 async function toggleSidebar(on) {
   sidebarEnabled = on;
-  const sec = qs("#secondary");
+  const sec = qs("div#secondary.style-scope.ytd-watch-flexy");
   const rel = qs("#related");
   if (!sec || !rel) return;
 
   const c = document.getElementById("comments") || (await ensureCommentsLoaded());
+  
 
   if (on) {
     expandDescription();
     rel.style.display = "none";
+    c.style.maxHeight="100vh";
+    c.style.overflowY="auto";
     sec.appendChild(c);
-    c.style.display = "block";
+    qs("ytd-comments-header-renderer.style-scope.ytd-item-section-renderer").style.marginTop="0";
+
   } else {
     rel.style.display = "";
-    (qs("#below") || qs("#below-the-fold"))?.appendChild(c);
     c.style.maxHeight = "";
+    (qs("#below") || qs("#below-the-fold"))?.appendChild(c);
 
     const collapseBtn = qs("tp-yt-paper-button#collapse.button.ytd-text-inline-expander");
     if (collapseBtn) collapseBtn.click();
@@ -72,10 +76,12 @@ chrome.runtime.onMessage.addListener(({ action, enabled }) => {
 const applyIfEnabled = async () => {
   const { sidebarEnabled } = await chrome.storage.local.get("sidebarEnabled");
   if (sidebarEnabled) {
-    // slight delay to let YouTube finish rendering
-    setTimeout(() => toggleSidebar(true), 600);
+    toggleSidebar(true)
   }
 };
 
-applyIfEnabled();
+if (location.pathname === "/watch") {
+  
+  applyIfEnabled();
+}
 window.addEventListener("yt-navigate-finish", applyIfEnabled);
