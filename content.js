@@ -45,9 +45,9 @@ async function toggleSidebar(on) {
   const sec = qs("div#secondary.style-scope.ytd-watch-flexy");
   const rel = qs("#related");
   if (!sec || !rel) return;
-
-  const c = document.getElementById("comments") || (await ensureCommentsLoaded());
   
+  const c = document.getElementById("comments") || (await ensureCommentsLoaded());
+
 
   if (on) {
     expandDescription();
@@ -55,7 +55,6 @@ async function toggleSidebar(on) {
     c.style.maxHeight="100vh";
     c.style.overflowY="auto";
     sec.appendChild(c);
-    qs("ytd-comments-header-renderer.style-scope.ytd-item-section-renderer").style.marginTop="0";
 
   } else {
     rel.style.display = "";
@@ -65,6 +64,7 @@ async function toggleSidebar(on) {
     const collapseBtn = qs("tp-yt-paper-button#collapse.button.ytd-text-inline-expander");
     if (collapseBtn) collapseBtn.click();
   }
+
 }
 
 /** Handles messages from popup or background script */

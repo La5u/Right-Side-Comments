@@ -7,6 +7,9 @@ chrome.commands.onCommand.addListener(async (command) => {
     chrome.storage.local.get(["sidebarEnabled"], (data) => {
       const newState = !data.sidebarEnabled;
       chrome.storage.local.set({ sidebarEnabled: newState });
+      chrome.action.setIcon({
+        path: newState ? "icon.png" : "iconoff.png"
+      });
 
       // Send toggle message to content script
       chrome.tabs.sendMessage(tab.id, {
