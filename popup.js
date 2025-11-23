@@ -9,6 +9,9 @@ chrome.storage.local.get(["sidebarEnabled"], (data) => {
 toggle.addEventListener("change", async (e) => {
   const enabled = e.target.checked;
   chrome.storage.local.set({ sidebarEnabled: enabled });
+  chrome.action.setIcon({
+    path: e.target.checked ? "icon.png" : "iconoff.png"
+  });
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab && tab.id) {
