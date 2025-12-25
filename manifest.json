@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Right Side Commments",
-  "version": "1.8",
+  "version": "1.9",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
-  "permissions": ["storage", "activeTab", "tabs", "scripting"],
+  "permissions": ["storage", "activeTab", "tabs"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "scripts": ["background.js"]
@@ -42,3 +42,4 @@
     }
   }
 }
+
