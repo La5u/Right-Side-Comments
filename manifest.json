@@ -3,7 +3,7 @@
   "name": "Right Side Commments",
   "version": "1.9",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
-  "permissions": ["storage", "activeTab", "tabs"],
+  "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "scripts": ["background.js"]
@@ -42,4 +42,5 @@
     }
   }
 }
+
 
