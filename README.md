@@ -11,5 +11,4 @@ Chromium: https://chromewebstore.google.com/detail/right-side-commments/dbbdaiek
 To use in chromium, replace the line `"scripts": ["background.js"]` with `"service_worker": "background.js"` in manifest.json.
 
 ### Roadmap
-- fix iffy switching on/off
 - new options such as not expanding description automatically

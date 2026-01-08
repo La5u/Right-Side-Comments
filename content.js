@@ -1,34 +1,23 @@
 const qs = (s) => document.querySelector(s);
-/** Waits until the #comments element is available */
+
+// MULTIPLE ASYNC FUNCTIONS USED TO WAIT UNTIL ELEMENTS ARE LOADED
+// Waits until the #comments element is available
 const ensureCommentsLoaded = async () => {
   return new Promise((resolve) => {
     const obs = new MutationObserver(() => {
-      c = qs("ytd-comments");
+      c = document.getElementById("comments");
       if (c) {
-        resolve(c);
         obs.disconnect();
+        resolve(c);
       }
     });
     obs.observe(document.body, { childList: true, subtree: true });
   });
 };
 
-function waitForCommentsHeader(container) {
-  return new Promise((resolve) => {
-    const obs = new MutationObserver(() => {
-      const header = qs("ytd-comments-header-renderer.ytd-item-section-renderer");
-      if (header) {
-        obs.disconnect();
-        resolve(header);
-      }
-    });
-    obs.observe(document.body,
-      { childList: true, subtree: true });
-  });
-}
 /** Expands the video description if collapsed */
 function expandDescription() {
-  const container = qs("#below") || qs("ytd-text-inline-expander") || document.body;
+  const container = qs("#below") || qs("ytd-text-inline-expander");
   const obs = new MutationObserver(() => {
     const btn = qs("tp-yt-paper-button#expand.button.ytd-text-inline-expander");
     if (btn) {
@@ -49,33 +38,32 @@ async function toggleSidebar(sidebarEnabled) {
   if (sidebarEnabled) {
     expandDescription();
     rel.style.display = "none";
+
     // these two to make it scrollable while viewing video
     c.style.maxHeight="100vh";
     c.style.overflowY="auto";
 
-    sec.style.paddingRight="0px";
-    sec.appendChild(c); //move to sidebar
-    const header = await waitForCommentsHeader();
-    header.style.setProperty("margin-top", "0px", "important"); // needs to be explicit or will be overwritten
+    sec.style.paddingRight="0px"; //extra space on the right side for comments
+    sec.appendChild(c); //move comments to sidebar
 
   } else {
     const collapseBtn = qs("tp-yt-paper-button#collapse.button.ytd-text-inline-expander");
     if (collapseBtn) collapseBtn.click();
+    //reset styling
     rel.style.display = "";
     c.style.maxHeight = "";
     c.style.overflowY = "";
     sec.style.paddingRight = "";
-    qs("#below")?.appendChild(c);
+    qs("#below")?.appendChild(c); //move comments back
   }
 }
 
 /** Handles messages from popup or background script */
-chrome.runtime.onMessage.addListener(async ({ action, enabled }) => {
+chrome.runtime.onMessage.addListener(({ action, enabled }) => {
   if (action === "toggleCommentsSidebar") {
     toggleSidebar(enabled);
   }
 });
-
 
 window.addEventListener("yt-navigate-finish", async () => {
   if (location.pathname === "/watch") {
