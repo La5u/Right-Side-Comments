@@ -43,7 +43,7 @@ async function toggleSidebar(sidebarEnabled) {
     c.style.maxHeight="100vh";
     c.style.overflowY="auto";
 
-    sec.style.paddingRight="0px"; //extra space on the right side for comments
+    // sec.style.paddingRight="0px"; //extra space on the right side for comments
     sec.appendChild(c); //move comments to sidebar
 
   } else {

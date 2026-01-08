@@ -2,3 +2,6 @@
 #header ytd-comments-header-renderer {
 	margin-top: 0;
 }
+div.ytSubThreadSubThreadContent {
+    margin-left: 0;
+}
