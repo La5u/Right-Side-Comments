@@ -7,8 +7,8 @@ Chromium: https://chromewebstore.google.com/detail/right-side-commments/dbbdaiek
 - Exand description automatically (when enabled)
 - Shortcut on/off - ctrl(cmd) shift y (can be changed in about:addons in Firefox)
 
-### Chromium
-To use in chromium, replace the line `"scripts": ["background.js"]` with `"service_worker": "background.js"` in manifest.json.
+### Usage
+For Firefox, rename `manifest.firefox.json` to `manifest.json`. For Chromium, rename `manifest.chromium.json` to `manifest.json`.
 
 ### Roadmap
 - new options such as not expanding description automatically

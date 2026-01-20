@@ -1,75 +1,84 @@
-const qs = (s) => document.querySelector(s);
+const qs = (s) => document.body.querySelector(s);
 
-// MULTIPLE ASYNC FUNCTIONS USED TO WAIT UNTIL ELEMENTS ARE LOADED
-// Waits until the #comments element is available
-const ensureCommentsLoaded = async () => {
+// Function used to wait until elements are loaded
+function waitFor(target) {
   return new Promise((resolve) => {
+    const get = typeof target === "function"
+      ? target
+      : () => qs(target);
+
+    const existing = get();
+    if (existing) return resolve(existing);
+
     const obs = new MutationObserver(() => {
-      c = document.getElementById("comments");
-      if (c) {
+      const el = get();
+      if (el) {
         obs.disconnect();
-        resolve(c);
+        resolve(el);
       }
     });
+
     obs.observe(document.body, { childList: true, subtree: true });
   });
-};
-
-/** Expands the video description if collapsed */
-function expandDescription() {
-  const container = qs("#below") || qs("ytd-text-inline-expander");
-  const obs = new MutationObserver(() => {
-    const btn = qs("tp-yt-paper-button#expand.button.ytd-text-inline-expander");
-    if (btn) {
-      btn.click();
-      obs.disconnect();
-    }
-  });
-
-  obs.observe(container, { childList: true, subtree: true });
 }
 
 /** Moves comments into the sidebar (on=true) or restores them (on=false) */
-async function toggleSidebar(sidebarEnabled) {
+async function toggleSidebar(sidebarEnabled, { hideRelated } = {}) {
   const sec = qs("div#secondary.ytd-watch-flexy");
   const rel = qs("#related");
-  const c = await ensureCommentsLoaded();
+  const c = await waitFor("ytd-comments#comments");
 
   if (sidebarEnabled) {
-    expandDescription();
-    rel.style.display = "none";
+    if (sec.contains(c)) return;
 
+    // Delete recommendations if enabled
+    if (hideRelated) {
+      rel.style.display = "none";
+    }
+    if (!hideRelated) {
+      rel.style.display = "";
+      rel.style.marginTop = "32px";
+    }
     // these two to make it scrollable while viewing video
     c.style.maxHeight="100vh";
     c.style.overflowY="auto";
+    // sec.style.paddingRight="0px" //for chromium works well, as there is more space
 
-    // sec.style.paddingRight="0px"; //extra space on the right side for comments
-    sec.appendChild(c); //move comments to sidebar
+    sec.appendChild(c);//move comments to sidebar
+    if (!hideRelated) sec.appendChild(rel);
 
   } else {
-    const collapseBtn = qs("tp-yt-paper-button#collapse.button.ytd-text-inline-expander");
-    if (collapseBtn) collapseBtn.click();
+
     //reset styling
     rel.style.display = "";
     c.style.maxHeight = "";
     c.style.overflowY = "";
-    sec.style.paddingRight = "";
+    rel.style.marginTop = "";
+    // sec.style.paddingRight = ""; //for chromium
     qs("#below")?.appendChild(c); //move comments back
   }
 }
 
-/** Handles messages from popup or background script */
-chrome.runtime.onMessage.addListener(({ action, enabled }) => {
+/** Handles messages from popup or shortcut */
+chrome.runtime.onMessage.addListener(async ({ action, enabled }) => {
   if (action === "toggleCommentsSidebar") {
-    toggleSidebar(enabled);
+    const { autoExpand, hideRelated } = await chrome.storage.local.get(["autoExpand", "hideRelated"]);
+    toggleSidebar(enabled, { hideRelated });
+
+    if (enabled && autoExpand) {
+      document.getElementById("expand")?.click();
+    } else {
+      document.getElementById("collapse")?.click();
+    }
   }
 });
 
 window.addEventListener("yt-navigate-finish", async () => {
   if (location.pathname === "/watch") {
-    const { sidebarEnabled } = await chrome.storage.local.get("sidebarEnabled");
+    const { sidebarEnabled, autoExpand, hideRelated } = await chrome.storage.local.get(["sidebarEnabled", "autoExpand", "hideRelated"]);
     if (sidebarEnabled) {
-      toggleSidebar(sidebarEnabled)
+      toggleSidebar(true, { hideRelated });
+      if (autoExpand) document.getElementById("expand")?.click();
     }
   }
 });

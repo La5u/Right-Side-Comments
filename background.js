@@ -1,6 +1,11 @@
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.set({ sidebarEnabled: true });
+  chrome.storage.local.set({
+    sidebarEnabled: true,
+    autoExpand: true,
+    hideRelated: true,
+  });
 });
+
 
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "toggle-comments-sidebar") {
