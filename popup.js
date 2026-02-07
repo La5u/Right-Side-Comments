@@ -1,13 +1,19 @@
 const toggle = document.getElementById("toggle");
 const autoExpand = document.getElementById("autoExpand");
 const hideRelated = document.getElementById("hideRelated");
+const STORAGE_KEYS = ["sidebarEnabled", "autoExpand", "hideRelated"];
 
 function setSubEnabled(mainOn) {
   autoExpand.disabled = !mainOn;
   hideRelated.disabled = !mainOn;
 }
 
-chrome.storage.local.get(["sidebarEnabled", "autoExpand", "hideRelated"], (d) => {
+async function sendToActiveTab(message) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) chrome.tabs.sendMessage(tab.id, message);
+}
+
+chrome.storage.local.get(STORAGE_KEYS, (d) => {
   toggle.checked = !!d.sidebarEnabled;
   autoExpand.checked = d.autoExpand !== false;
   hideRelated.checked = d.hideRelated !== false;
@@ -19,19 +25,17 @@ toggle.addEventListener("change", async (e) => {
   chrome.storage.local.set({ sidebarEnabled: enabled });
   chrome.action.setIcon({ path: enabled ? "icon.png" : "iconoff.png" });
   setSubEnabled(enabled);
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id) {
-    chrome.tabs.sendMessage(tab.id, { action: "toggleCommentsSidebar", enabled });
-  }
+  await sendToActiveTab({ action: "toggleCommentsSidebar", enabled });
 });
 
-autoExpand.addEventListener("change", (e) => {
+autoExpand.addEventListener("change", async (e) => {
   chrome.storage.local.set({ autoExpand: e.target.checked });
+  await sendToActiveTab({ action: "applyCurrentSettings" });
 });
 
-hideRelated.addEventListener("change", (e) => {
+hideRelated.addEventListener("change", async (e) => {
   chrome.storage.local.set({ hideRelated: e.target.checked });
+  await sendToActiveTab({ action: "applyCurrentSettings" });
 });
 
 chrome.storage.onChanged.addListener((changes) => {

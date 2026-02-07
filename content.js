@@ -1,84 +1,114 @@
-const qs = (s) => document.body.querySelector(s);
+const qs = (s, root = document) => root?.querySelector(s) || null;
 
-// Function used to wait until elements are loaded
-function waitFor(target) {
+// Single active toggle flow; new actions cancel stale waits.
+let activeToggleController = null;
+
+// Wait until target selector/function resolves to an element.
+function waitFor(target, { signal } = {}) {
   return new Promise((resolve) => {
-    const get = typeof target === "function"
-      ? target
-      : () => qs(target);
+    if (signal?.aborted) return resolve(null);
+    const get = typeof target === "function" ? target : () => qs(target);
+    let settled = false;
+    let obs = null;
+
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      obs?.disconnect();
+      signal?.removeEventListener("abort", onAbort);
+      resolve(value);
+    };
+
+    const onAbort = () => finish(null);
 
     const existing = get();
-    if (existing) return resolve(existing);
+    if (existing) return finish(existing);
 
-    const obs = new MutationObserver(() => {
+    obs = new MutationObserver(() => {
       const el = get();
-      if (el) {
-        obs.disconnect();
-        resolve(el);
-      }
+      if (el) finish(el);
     });
 
-    obs.observe(document.body, { childList: true, subtree: true });
+    const root = document.body || document.documentElement;
+    if (!root) return finish(null);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    obs.observe(root, { childList: true, subtree: true });
   });
 }
 
 /** Moves comments into the sidebar (on=true) or restores them (on=false) */
 async function toggleSidebar(sidebarEnabled, { hideRelated } = {}) {
-  const sec = qs("div#secondary.ytd-watch-flexy");
+  // Latest intent wins: cancel any older in-flight operation.
+  activeToggleController?.abort();
+  activeToggleController = new AbortController();
+  const signal = activeToggleController.signal;
+
+  const sec = await waitFor("div#secondary.ytd-watch-flexy", { signal });
+  const c = await waitFor("ytd-comments#comments", { signal });
   const rel = qs("#related");
-  const c = await waitFor("ytd-comments#comments");
+  if (signal.aborted || !sec || !c) return false;
 
   if (sidebarEnabled) {
-    if (sec.contains(c)) return;
-
-    // Delete recommendations if enabled
-    if (hideRelated) {
-      rel.style.display = "none";
-    }
-    if (!hideRelated) {
+    // Re-apply related visibility even if comments were already moved.
+    if (hideRelated && rel) rel.style.display = "none";
+    if (!hideRelated && rel) {
       rel.style.display = "";
       rel.style.marginTop = "32px";
     }
-    // these two to make it scrollable while viewing video
-    c.style.maxHeight="100vh";
-    c.style.overflowY="auto";
-    // sec.style.paddingRight="0px" //for chromium works well, as there is more space
 
-    sec.appendChild(c);//move comments to sidebar
-    if (!hideRelated) sec.appendChild(rel);
+    c.style.maxHeight = "100vh";
+    c.style.overflowY = "auto";
 
+    if (!hideRelated && rel?.parentNode === sec) {
+      // Keep related stable for thumbnail extensions; only move comments.
+      sec.insertBefore(c, rel);
+    } else {
+      if (!sec.contains(c)) sec.appendChild(c);
+      if (!hideRelated && rel?.parentNode !== sec) sec.appendChild(rel);
+    }
   } else {
-
-    //reset styling
-    rel.style.display = "";
+    if (rel) rel.style.display = "";
     c.style.maxHeight = "";
     c.style.overflowY = "";
-    rel.style.marginTop = "";
-    // sec.style.paddingRight = ""; //for chromium
-    qs("#below")?.appendChild(c); //move comments back
+    if (rel) rel.style.marginTop = "";
+    qs("#below")?.appendChild(c);
+  }
+  return true;
+}
+
+async function applyFromStorage(sidebarEnabledOverride) {
+  const { sidebarEnabled, autoExpand, hideRelated } =
+    await chrome.storage.local.get([
+      "sidebarEnabled",
+      "autoExpand",
+      "hideRelated",
+    ]);
+
+  const enabled =
+    typeof sidebarEnabledOverride === "boolean"
+      ? sidebarEnabledOverride
+      : !!sidebarEnabled;
+
+  const applied = await toggleSidebar(enabled, { hideRelated });
+  if (!applied) return;
+
+  if (enabled && autoExpand) {
+    qs("tp-yt-paper-button#expand")?.click();
+  } else {
+    qs("tp-yt-paper-button#collapse")?.click();
   }
 }
 
 /** Handles messages from popup or shortcut */
 chrome.runtime.onMessage.addListener(async ({ action, enabled }) => {
   if (action === "toggleCommentsSidebar") {
-    const { autoExpand, hideRelated } = await chrome.storage.local.get(["autoExpand", "hideRelated"]);
-    toggleSidebar(enabled, { hideRelated });
-
-    if (enabled && autoExpand) {
-      document.getElementById("expand")?.click();
-    } else {
-      document.getElementById("collapse")?.click();
-    }
+    await applyFromStorage(!!enabled);
+  } else if (action === "applyCurrentSettings") {
+    await applyFromStorage();
   }
 });
 
 window.addEventListener("yt-navigate-finish", async () => {
-  if (location.pathname === "/watch") {
-    const { sidebarEnabled, autoExpand, hideRelated } = await chrome.storage.local.get(["sidebarEnabled", "autoExpand", "hideRelated"]);
-    if (sidebarEnabled) {
-      toggleSidebar(true, { hideRelated });
-      if (autoExpand) document.getElementById("expand")?.click();
-    }
-  }
+  if (location.pathname !== "/watch") return;
+  await applyFromStorage();
 });
