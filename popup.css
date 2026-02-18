@@ -2,15 +2,32 @@ body {
   font-family: sans-serif;
   background: #1c1c1c;
   color: #fff;
-  width: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  width: 220px;
+  margin: 0;
   padding: 10px;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 10px;
 }
 
 label {
   font-size: 14px;
+}
+
+.github-link {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
 }
 
 /* Toggle switch style */
