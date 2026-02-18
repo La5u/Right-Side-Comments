@@ -9,17 +9,18 @@ function waitFor(target, { signal } = {}) {
     if (signal?.aborted) return resolve(null);
     const get = typeof target === "function" ? target : () => qs(target);
     let settled = false;
+    let obs = null;
     const done = (value) => {
       if (settled) return;
       settled = true;
-      obs.disconnect();
+      obs?.disconnect();
       signal?.removeEventListener("abort", onAbort);
       resolve(value);
     };
     const onAbort = () => done(null);
     const existing = get();
     if (existing) return done(existing);
-    const obs = new MutationObserver(() => {
+    obs = new MutationObserver(() => {
       const el = get();
       if (el) done(el);
     });
