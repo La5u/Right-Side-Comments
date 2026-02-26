@@ -17,6 +17,10 @@
       "128": "icon.png"
     }
   },
+  "icons": {
+    "48": "icon.png",
+    "96": "icon.png"
+  },
   "commands": {
     "toggle-comments-sidebar": {
       "suggested_key": {
