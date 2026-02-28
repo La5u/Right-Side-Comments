@@ -3,7 +3,7 @@
   "name": "Right Side Comments",
   "version": "2.6",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
-  "homepage_url": "https://github.com/La5u/Right-Side-Comments",
+  "homepage_url": "https://la5u.github.io/Right-Side-Comments/",
   "permissions": ["storage"],
   "background": {
     "service_worker": "background.js"
