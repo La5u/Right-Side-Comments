@@ -1,31 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Right Side Comments",
-  "version": "2.5",
+  "version": "2.6",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
+  "homepage_url": "https://github.com/La5u/Right-Side-Comments",
   "permissions": ["storage"],
-  "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "service_worker": "background.js"
   },
 
   "action": {
+    "default_title": "Right Side Comments",
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icon.png",
+      "32": "icon.png",
       "48": "icon.png",
+      "96": "icon.png",
       "128": "icon.png"
     }
   },
   "icons": {
+    "32": "icon.png",
     "48": "icon.png",
-    "96": "icon.png"
+    "96": "icon.png",
+    "128": "icon.png"
   },
   "commands": {
     "toggle-comments-sidebar": {
       "suggested_key": {
         "default": "Ctrl+Shift+Y",
-        "mac": "Command+Shift+Y"
+        "mac": "Command+Shift+Y",
+        "linux": "Ctrl+Shift+U"
       },
       "description": "Toggle sidebar"
     }
@@ -37,11 +42,5 @@
       "css": ["style.css"],
       "run_at": "document_start"
     }
-  ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "youtube-comments-sidebar@example.com",
-      "strict_min_version": "109.0"
-    }
-  }
+  ]
 }
