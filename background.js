@@ -4,7 +4,9 @@ chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.local.set({
     sidebarEnabled: true,
     autoExpand: true,
-    hideRelated: true,
+    showRelated: false,
+    showScrollbar: false,
+    compactMargins: true,
   });
 });
 

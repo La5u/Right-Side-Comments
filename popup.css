@@ -13,6 +13,14 @@ body {
   gap: 10px;
 }
 
+.section-title {
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9aa0a6;
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr auto;

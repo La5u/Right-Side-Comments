@@ -2,6 +2,7 @@ const qs = (s, root = document) => root?.querySelector(s) || null;
 
 // Single active toggle flow; new actions cancel stale waits.
 let activeToggleController = null;
+let lastUiSignature = "";
 
 // Wait until target selector/function resolves to an element.
 function waitFor(target, { signal } = {}) {
@@ -30,7 +31,8 @@ function waitFor(target, { signal } = {}) {
 }
 
 /** Moves comments into the sidebar (on=true) or restores them (on=false) */
-async function toggleSidebar(sidebarEnabled, { hideRelated } = {}) {
+async function toggleSidebar(sidebarEnabled, { showRelated } = {}) {
+  if (location.pathname !== "/watch") return;
   // Latest intent wins: cancel any older in-flight operation.
   activeToggleController?.abort();
   activeToggleController = new AbortController();
@@ -43,18 +45,18 @@ async function toggleSidebar(sidebarEnabled, { hideRelated } = {}) {
 
   if (sidebarEnabled) {
     //hide recommendations
-    if (rel) rel.style.display = hideRelated ? "none" : ""; 
+    if (rel) rel.style.display = showRelated ? "" : "none";
 
     //put the comments in a scrollbale box
-    c.style.maxHeight = "100vh"; 
+    c.style.maxHeight = "calc(100vh - 80px)"; 
     c.style.overflowY = "auto";
 
-    if (!hideRelated && rel?.parentNode === sec) {
+    if (showRelated && rel?.parentNode === sec) {
       // Keep related stable for thumbnails; only move comments.
       sec.insertBefore(c, rel);
     } else {
       if (!sec.contains(c)) sec.appendChild(c);
-      if (!hideRelated && rel?.parentNode !== sec) sec.appendChild(rel);
+      if (showRelated && rel?.parentNode !== sec) sec.appendChild(rel);
     }
   } else {
     if (rel) rel.style.display = "";
@@ -65,15 +67,45 @@ async function toggleSidebar(sidebarEnabled, { hideRelated } = {}) {
   return true;
 }
 
+function applyUiSettings({ showScrollbar, compactMargins }) {
+  const root = document.documentElement;
+  if (!root) return;
+
+  const hideScrollbar = !showScrollbar;
+  const useCompactMargins = compactMargins !== false;
+  const nextSignature = `${hideScrollbar}:${useCompactMargins}`;
+  if (nextSignature === lastUiSignature) return;
+  lastUiSignature = nextSignature;
+
+  root.classList.toggle("rsc-hide-scrollbar", hideScrollbar);
+  root.classList.toggle("rsc-compact-margins", useCompactMargins);
+}
+
 async function applyFromStorage() {
-  const { sidebarEnabled, autoExpand, hideRelated } =
+  if (location.pathname !== "/watch") return;
+
+  const { sidebarEnabled, autoExpand, showRelated, hideRelated, showScrollbar, compactMargins } =
     await chrome.storage.local.get([
       "sidebarEnabled",
       "autoExpand",
+      "showRelated",
       "hideRelated",
+      "showScrollbar",
+      "compactMargins",
     ]);
+  // legacy hiderelated
+  const showRelatedValue =
+    typeof showRelated === "boolean"
+      ? showRelated
+      : typeof hideRelated === "boolean"
+        ? !hideRelated
+        : false;
 
-  const applied = await toggleSidebar(sidebarEnabled, { hideRelated });
+  applyUiSettings({ showScrollbar, compactMargins });
+
+  const applied = await toggleSidebar(sidebarEnabled, {
+    showRelated: showRelatedValue,
+  });
   if (!applied) return;
 
   if (sidebarEnabled && autoExpand) {
@@ -90,16 +122,13 @@ async function applyFromStorage() {
     qs("#description-inline-expander tp-yt-paper-button#collapse")?.click();
   }
 }
-async function run() {
-  if (location.pathname !== "/watch") return;
-  await applyFromStorage();
-}
-run(); // direct page load
-window.addEventListener("yt-navigate-finish", run); // SPA nav
+
+applyFromStorage()
+window.addEventListener("yt-navigate-finish", applyFromStorage); // SPA nav
 
 // Handles messages from popup or shortcut
 chrome.runtime.onMessage.addListener(async ({ action }) => {
   if (action === "toggleCommentsSidebar" || action === "applyCurrentSettings") {
-    await run();
+    await applyFromStorage(); //run
   }
 });

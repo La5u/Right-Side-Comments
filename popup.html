@@ -7,8 +7,10 @@
 </head>
 <body>
   <div class="popup">
+    <div class="section-title">Behavior</div>
+
     <div class="row">
-      <label for="toggle">Sidebar (ctrl+shift+Y)</label>
+      <label for="toggle" id="toggleLabel">Sidebar (Ctrl+Shift+Y)</label>
       <label class="switch">
         <input type="checkbox" id="toggle" />
         <span class="slider"></span>
@@ -24,9 +26,27 @@
     </div>
 
     <div class="row">
-      <label for="hideRelated">Hide recommended</label>
+      <label for="showRelated">Show recommended</label>
       <label class="switch">
-        <input type="checkbox" id="hideRelated" />
+        <input type="checkbox" id="showRelated" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="section-title">UI</div>
+
+    <div class="row">
+      <label for="showScrollbar">Show scrollbar</label>
+      <label class="switch">
+        <input type="checkbox" id="showScrollbar" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row">
+      <label for="compactMargins">Compact comments</label>
+      <label class="switch">
+        <input type="checkbox" id="compactMargins" />
         <span class="slider"></span>
       </label>
     </div>

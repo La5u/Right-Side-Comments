@@ -2,7 +2,21 @@
 #header ytd-comments-header-renderer {
   margin-top: 0;
 }
-
-div.ytSubThreadSubThreadContent {
+/* add extra space*/
+html.rsc-compact-margins div.ytSubThreadSubThreadContent {
   margin-left: 0;
+  margin-top: 8px;
+}
+
+ytd-comments#comments {
+  margin-bottom: 15px; /*space between recommendations*/
+}
+
+html.rsc-hide-scrollbar ytd-comments#comments {
+  scrollbar-width: none;
+}
+
+html.rsc-hide-scrollbar ytd-comments#comments::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
