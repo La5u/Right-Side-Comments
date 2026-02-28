@@ -1,0 +1,22 @@
+<svg width="900" height="700" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="700" fill="#eef2f7"/>
+  <rect x="250" y="40" width="400" height="620" rx="20" fill="#1f2937"/>
+  <rect x="280" y="90" width="340" height="18" rx="9" fill="#9ca3af"/>
+  <rect x="280" y="140" width="240" height="14" rx="7" fill="#d1d5db"/>
+  <rect x="550" y="132" width="54" height="30" rx="15" fill="#3b82f6"/>
+  <circle cx="588" cy="147" r="10" fill="#ffffff"/>
+  <rect x="280" y="190" width="220" height="14" rx="7" fill="#d1d5db"/>
+  <rect x="550" y="182" width="54" height="30" rx="15" fill="#3b82f6"/>
+  <circle cx="588" cy="197" r="10" fill="#ffffff"/>
+  <rect x="280" y="240" width="210" height="14" rx="7" fill="#d1d5db"/>
+  <rect x="550" y="232" width="54" height="30" rx="15" fill="#4b5563"/>
+  <circle cx="566" cy="247" r="10" fill="#ffffff"/>
+  <rect x="280" y="300" width="90" height="12" rx="6" fill="#9ca3af"/>
+  <rect x="280" y="340" width="180" height="14" rx="7" fill="#d1d5db"/>
+  <rect x="550" y="332" width="54" height="30" rx="15" fill="#4b5563"/>
+  <circle cx="566" cy="347" r="10" fill="#ffffff"/>
+  <rect x="280" y="390" width="200" height="14" rx="7" fill="#d1d5db"/>
+  <rect x="550" y="382" width="54" height="30" rx="15" fill="#3b82f6"/>
+  <circle cx="588" cy="397" r="10" fill="#ffffff"/>
+  <text x="280" y="620" fill="#cbd5e1" font-size="22" font-family="Arial, sans-serif">Popup controls overview</text>
+</svg>

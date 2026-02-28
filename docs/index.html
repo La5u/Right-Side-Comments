@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Right Side Comments</title>
+  <meta
+    name="description"
+    content="Move YouTube comments to the right side with quick toggles for recommended videos, scrollbar visibility, and compact layout."
+  />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="hero">
+    <img src="../icon.png" alt="Right Side Comments icon" class="logo" />
+    <h1>Right Side Comments</h1>
+    <p class="version">Current version: v2.6</p>
+    <p>Move YouTube comments to the right sidebar with one click.</p>
+    <div class="actions">
+      <a href="https://chromewebstore.google.com/detail/right-side-commments/dbbdaiekbopmfbjdchgggfeabapnacnh" target="_blank" rel="noopener noreferrer">Chrome Extension</a>
+      <a href="https://addons.mozilla.org/en-US/firefox/addon/right-side-comments/" target="_blank" rel="noopener noreferrer">Firefox Add-on</a>
+      <a href="https://github.com/La5u/Right-Side-Comments" target="_blank" rel="noopener noreferrer">GitHub Repo</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section>
+      <h2>What It Does</h2>
+      <p>
+        On YouTube watch pages, the extension can move comments into the right panel.
+        You can quickly toggle behavior from the popup or keyboard shortcut.
+      </p>
+    </section>
+
+    <section>
+      <h2>Toggle Options</h2>
+      <ul class="toggle-list">
+        <li><strong>Sidebar:</strong> enable or disable right-side comments mode.</li>
+        <li><strong>Expand Description:</strong> auto-expand the description while sidebar mode is enabled.</li>
+        <li><strong>Show Recommended:</strong> choose whether recommended videos remain visible next to comments.</li>
+        <li><strong>Show Scrollbar:</strong> show or hide the comments scrollbar.</li>
+        <li><strong>Compact Comments:</strong> use tighter comment spacing for a denser layout.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Screenshots</h2>
+      <div class="shots">
+        <figure>
+          <img src="./images/comments.png" alt="Watch page preview" />
+            <br>
+            <br>
+            <br>
+          <img src="./images/comments2.png" alt="Watch page preview2" />
+          <figcaption>Watch page preview</figcaption>
+        </figure>
+        <figure>
+          <img src="./images/popup.png" alt="Popup preview" />
+          <figcaption>Popup controls preview</figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Right Side Comments • <span id="year"></span></small>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
