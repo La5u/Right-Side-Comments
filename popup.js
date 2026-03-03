@@ -8,7 +8,6 @@ const STORAGE_KEYS = [
   "sidebarEnabled",
   "autoExpand",
   "showRelated",
-  "hideRelated",
   "showScrollbar",
   "compactMargins",
 ];
@@ -33,62 +32,70 @@ async function sendToActiveTab(message) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab?.id) chrome.tabs.sendMessage(tab.id, message);
 }
-// legacy hiderelated
 chrome.storage.local.get(STORAGE_KEYS, (d) => {
-  const showRelatedValue =
-    typeof d.showRelated === "boolean"
-      ? d.showRelated
-      : typeof d.hideRelated === "boolean"
-        ? !d.hideRelated
-        : false;
+  const sidebarEnabledValue = d.sidebarEnabled !== false;
 
-  toggle.checked = !!d.sidebarEnabled;
+  toggle.checked = sidebarEnabledValue;
   autoExpand.checked = d.autoExpand !== false;
-  showRelated.checked = showRelatedValue;
+  showRelated.checked = d.showRelated !== false;
   showScrollbar.checked = d.showScrollbar === true;
   compactMargins.checked = d.compactMargins !== false;
-  setSubEnabled(!!d.sidebarEnabled);
-
-  if (typeof d.showRelated !== "boolean") {
-    chrome.storage.local.set({
-      showRelated: showRelatedValue,
-    });
-  }
+  setSubEnabled(sidebarEnabledValue);
 });
 updateShortcutLabel();
 
 toggle.addEventListener("change", async (e) => {
   const enabled = e.target.checked;
   chrome.storage.local.set({ sidebarEnabled: enabled });
-  chrome.action.setIcon({ path: enabled ? "icon.png" : "iconoff.png" });
   setSubEnabled(enabled);
-  await sendToActiveTab({ action: "toggleCommentsSidebar", enabled });
+  await sendToActiveTab({ action: "toggleCommentsSidebar" });
 });
 
 autoExpand.addEventListener("change", async (e) => {
-  chrome.storage.local.set({ autoExpand: e.target.checked });
-  await sendToActiveTab({ action: "applyCurrentSettings" });
+  const autoExpandValue = e.target.checked;
+  chrome.storage.local.set({ autoExpand: autoExpandValue });
+  await sendToActiveTab({
+    action: "setAutoExpand",
+    autoExpand: autoExpandValue,
+    sidebarEnabled: toggle.checked,
+  });
 });
 
 showRelated.addEventListener("change", async (e) => {
-  chrome.storage.local.set({ showRelated: e.target.checked });
-  await sendToActiveTab({ action: "applyCurrentSettings" });
+  const showRelatedValue = e.target.checked;
+  chrome.storage.local.set({ showRelated: showRelatedValue });
+  await sendToActiveTab({
+    action: "setShowRelated",
+    showRelated: showRelatedValue,
+    sidebarEnabled: toggle.checked,
+  });
 });
 
 showScrollbar.addEventListener("change", async (e) => {
-  chrome.storage.local.set({ showScrollbar: e.target.checked });
-  await sendToActiveTab({ action: "applyCurrentSettings" });
+  const showScrollbarValue = e.target.checked;
+  chrome.storage.local.set({ showScrollbar: showScrollbarValue });
+  await sendToActiveTab({
+    action: "setUiSettings",
+    showScrollbar: showScrollbarValue,
+    compactMargins: compactMargins.checked,
+  });
 });
 
 compactMargins.addEventListener("change", async (e) => {
-  chrome.storage.local.set({ compactMargins: e.target.checked });
-  await sendToActiveTab({ action: "applyCurrentSettings" });
+  const compactMarginsValue = e.target.checked;
+  chrome.storage.local.set({ compactMargins: compactMarginsValue });
+  await sendToActiveTab({
+    action: "setUiSettings",
+    showScrollbar: showScrollbar.checked,
+    compactMargins: compactMarginsValue,
+  });
 });
 
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.sidebarEnabled) {
-    toggle.checked = changes.sidebarEnabled.newValue;
-    setSubEnabled(!!changes.sidebarEnabled.newValue);
+    const sidebarEnabledValue = changes.sidebarEnabled.newValue !== false;
+    toggle.checked = sidebarEnabledValue;
+    setSubEnabled(sidebarEnabledValue);
   }
   if (changes.showRelated) {
     showRelated.checked = !!changes.showRelated.newValue;
