@@ -1,13 +1,50 @@
+function getActionIconPath(enabled) {
+  return enabled
+    ? {
+        16: "icon16.png",
+        32: "icon32.png",
+        48: "icon48.png",
+        96: "icon96.png",
+        128: "icon128.png",
+      }
+    : {
+        16: "iconoff16.png",
+        32: "iconoff32.png",
+        48: "iconoff48.png",
+        96: "iconoff96.png",
+        128: "iconoff128.png",
+      };
+}
+
+async function syncActionIconFromStorage() {
+  const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
+  const enabled = sidebarEnabled !== false;
+  chrome.action.setIcon({ path: getActionIconPath(enabled) });
+}
+
 chrome.runtime.onInstalled.addListener((details) => {
   // Keep user settings on updates; only seed defaults on first install.
-  if (details.reason !== "install") return;
-  chrome.storage.local.set({
-    sidebarEnabled: true,
-    autoExpand: true,
-    showRelated: false,
-    showScrollbar: false,
-    compactMargins: true,
-  });
+  if (details.reason === "install") {
+    chrome.storage.local.set({
+      sidebarEnabled: true,
+      autoExpand: true,
+      showRelated: true,
+      showScrollbar: false,
+      compactMargins: true,
+    });
+    chrome.tabs.create({
+      url: "https://la5u.github.io/Right-Side-Comments/",
+    });
+  }
+  syncActionIconFromStorage();
+});
+
+chrome.runtime.onStartup.addListener(syncActionIconFromStorage);
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local" || !changes.sidebarEnabled) return;
+  const enabled = changes.sidebarEnabled.newValue !== false;
+  chrome.action.setIcon({ path: getActionIconPath(enabled) });
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
@@ -16,18 +53,13 @@ chrome.commands.onCommand.addListener(async (command) => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
 
-  // Get current state
-  chrome.storage.local.get(["sidebarEnabled"], (data) => {
-    const newState = !data.sidebarEnabled;
-    chrome.storage.local.set({ sidebarEnabled: newState });
-    chrome.action.setIcon({
-      path: newState ? "icon.png" : "iconoff.png",
-    });
+  const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
+  const currentState = sidebarEnabled !== false;
+  const newState = !currentState;
+  chrome.storage.local.set({ sidebarEnabled: newState });
 
-    // Send toggle message to content script
-    chrome.tabs.sendMessage(tab.id, {
-      action: "toggleCommentsSidebar",
-      enabled: newState,
-    });
+  // Send toggle message to content script
+  chrome.tabs.sendMessage(tab.id, {
+    action: "toggleCommentsSidebar",
   });
 });
