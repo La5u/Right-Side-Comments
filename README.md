@@ -9,7 +9,7 @@ Move YouTube comments to the right sidebar on watch pages.
 ## Toggles
 
 - `Sidebar`: turn right-side comments on/off.
-- `Expand description`: expand/collapse video description with sidebar mode.
+- `Expand description`: expand when sidebar mode is enabled; collapse when disabled (intentional).
 - `Show recommended`: show or hide related videos.
 - `Show scrollbar`: show/hide the comments scrollbar.
 - `Compact comments`: tighter comment spacing.
@@ -18,7 +18,7 @@ Move YouTube comments to the right sidebar on watch pages.
 
 - `sidebarEnabled: true`
 - `autoExpand: true`
-- `showRelated: false`
+- `showRelated: true`
 - `showScrollbar: false`
 - `compactMargins: true`
 
