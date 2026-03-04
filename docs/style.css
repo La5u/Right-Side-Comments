@@ -44,7 +44,7 @@ h1 {
 
 .version {
   margin: 0;
-  color: #666;
+
   font-size: 14px;
 }
 
@@ -95,20 +95,22 @@ ul {
 }
 
 .shots {
-  display: grid;
+  justify-content:center;
+  display: flex;
   gap: 10px;
 }
 
 .shots img {
-  width: 100%;
-  border: 1px solid #e4e4e4;
+  max-width: 100%;
+  border: 1px solid #c80000;
   border-radius: 10px;
-  display: block;
+ 
 }
 
 footer {
   text-align: center;
-  color: #666;
-  padding: 0 16px 26px;
-  font-size: 13px;
+  color: #fff;
+  background: #c80000;
+    font-size: 13px;
+    padding: 25px 0px;
 }
