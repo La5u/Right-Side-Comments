@@ -1,18 +1,18 @@
 function getActionIconPath(enabled) {
   return enabled
     ? {
-        16: "icon16.png",
-        32: "icon32.png",
-        48: "icon48.png",
-        96: "icon96.png",
-        128: "icon128.png",
+        16: "assets/icon16.png",
+        32: "assets/icon32.png",
+        48: "assets/icon48.png",
+        96: "assets/icon96.png",
+        128: "assets/icon128.png",
       }
     : {
-        16: "iconoff16.png",
-        32: "iconoff32.png",
-        48: "iconoff48.png",
-        96: "iconoff96.png",
-        128: "iconoff128.png",
+        16: "assets/iconoff16.png",
+        32: "assets/iconoff32.png",
+        48: "assets/iconoff48.png",
+        96: "assets/iconoff96.png",
+        128: "assets/iconoff128.png",
       };
 }
 
@@ -31,6 +31,7 @@ chrome.runtime.onInstalled.addListener((details) => {
       showRelated: true,
       showScrollbar: false,
       compactMargins: true,
+      persistentCommentBox: true,
     });
     chrome.tabs.create({
       url: "https://la5u.github.io/Right-Side-Comments/",
