@@ -3,6 +3,7 @@
 Move YouTube comments to the right sidebar on watch pages.
 
 - Chrome: https://chromewebstore.google.com/detail/right-side-commments/dbbdaiekbopmfbjdchgggfeabapnacnh
+- Edge: https://microsoftedge.microsoft.com/addons/detail/ijamadlnojogehkdlgpgmhohcffpofld
 - Firefox: https://addons.mozilla.org/en-US/firefox/addon/right-side-comments/
 - GitHub: https://github.com/La5u/Right-Side-Comments
 
