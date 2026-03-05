@@ -9,7 +9,11 @@ html.rsc-compact-margins div.ytSubThreadSubThreadContent {
 }
 
 ytd-comments#comments {
-  margin-bottom: 15px; /*space between recommendations*/
+  margin-bottom: 20px; /*space between comments and recommendations*/
+}
+
+#rsc-comments-shell > ytd-comments#comments {
+  margin-bottom: 0;
 }
 
 html.rsc-hide-scrollbar ytd-comments#comments {
