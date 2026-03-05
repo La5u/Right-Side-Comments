@@ -59,6 +59,7 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: center;
 }
 
 .actions a {
@@ -70,12 +71,22 @@ h1 {
   font-weight: 600;
   background: #fff;
   transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .actions a:hover {
   border-color: #c80000;
   color: #c80000;
   transform: translateY(-1px);
+}
+
+.browser-icon-img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex-shrink: 0;
 }
 
 section {
