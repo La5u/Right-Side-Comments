@@ -7,6 +7,17 @@
 </head>
 <body>
   <div class="popup">
+    <button
+      id="themeToggle"
+      class="theme-toggle"
+      type="button"
+      aria-label="Toggle theme"
+      title="Toggle light/dark theme"
+    >
+      <img class="theme-icon theme-icon-sun" src="assets/theme-sun.svg" alt="" aria-hidden="true" />
+      <img class="theme-icon theme-icon-moon" src="assets/theme-moon.svg" alt="" aria-hidden="true" />
+    </button>
+
     <div class="section-title">Behavior</div>
 
     <div class="row">
@@ -51,6 +62,14 @@
       </label>
     </div>
 
+    <div class="row">
+      <label for="persistentCommentBox">Persistent comment box</label>
+      <label class="switch">
+        <input type="checkbox" id="persistentCommentBox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <a
       class="github-link"
       href="https://github.com/La5u/Right-Side-Comments"
@@ -58,12 +77,13 @@
       rel="noopener noreferrer"
     >
       <img
-        src="github_logo.png"
+        src="assets/github_logo.png"
         alt="GitHub"
         width="48"
         height="48"
       />
     </a>
+    <div id="versionLabel" class="version-label" aria-label="Extension version"></div>
   </div>
   <script src="popup.js"></script>
 </body>

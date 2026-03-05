@@ -4,19 +4,53 @@ const autoExpand = document.getElementById("autoExpand");
 const showRelated = document.getElementById("showRelated");
 const showScrollbar = document.getElementById("showScrollbar");
 const compactMargins = document.getElementById("compactMargins");
+const persistentCommentBox = document.getElementById("persistentCommentBox");
+const themeToggle = document.getElementById("themeToggle");
+const versionLabel = document.getElementById("versionLabel");
+const root = document.documentElement;
 const STORAGE_KEYS = [
   "sidebarEnabled",
   "autoExpand",
   "showRelated",
   "showScrollbar",
   "compactMargins",
+  "persistentCommentBox",
+  "themeOverride",
 ];
+const THEME_OVERRIDE_KEY = "themeOverride";
+
+applyTheme(getSystemTheme());
+
+function getSystemTheme() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  root.dataset.theme = theme;
+}
+
+function resolveTheme(override) {
+  return override === "dark" || override === "light" ? override : getSystemTheme();
+}
 
 function setSubEnabled(mainOn) {
   autoExpand.disabled = !mainOn;
   showRelated.disabled = !mainOn;
   showScrollbar.disabled = !mainOn;
   compactMargins.disabled = !mainOn;
+  persistentCommentBox.disabled = !mainOn;
+}
+
+function buildUiSettingsMessage(overrides = {}) {
+  return {
+    action: "setUiSettings",
+    sidebarEnabled: toggle.checked,
+    showRelated: showRelated.checked,
+    showScrollbar: showScrollbar.checked,
+    compactMargins: compactMargins.checked,
+    persistentCommentBox: persistentCommentBox.checked,
+    ...overrides,
+  };
 }
 
 async function updateShortcutLabel() {
@@ -40,9 +74,30 @@ chrome.storage.local.get(STORAGE_KEYS, (d) => {
   showRelated.checked = d.showRelated !== false;
   showScrollbar.checked = d.showScrollbar === true;
   compactMargins.checked = d.compactMargins !== false;
+  persistentCommentBox.checked = d.persistentCommentBox !== false;
+  applyTheme(resolveTheme(d.themeOverride));
   setSubEnabled(sidebarEnabledValue);
 });
 updateShortcutLabel();
+
+const version = chrome.runtime.getManifest().version;
+versionLabel.textContent = `v${version}`;
+
+const mediaTheme = window.matchMedia("(prefers-color-scheme: dark)");
+mediaTheme.addEventListener("change", async () => {
+  const data = await chrome.storage.local.get(THEME_OVERRIDE_KEY);
+  if (data.themeOverride !== "dark" && data.themeOverride !== "light") {
+    applyTheme(getSystemTheme());
+  }
+});
+
+themeToggle.addEventListener("click", async () => {
+  const data = await chrome.storage.local.get(THEME_OVERRIDE_KEY);
+  const currentTheme = resolveTheme(data.themeOverride);
+  const nextTheme = currentTheme === "dark" ? "light" : "dark";
+  await chrome.storage.local.set({ themeOverride: nextTheme });
+  applyTheme(nextTheme);
+});
 
 toggle.addEventListener("change", async (e) => {
   const enabled = e.target.checked;
@@ -74,21 +129,19 @@ showRelated.addEventListener("change", async (e) => {
 showScrollbar.addEventListener("change", async (e) => {
   const showScrollbarValue = e.target.checked;
   chrome.storage.local.set({ showScrollbar: showScrollbarValue });
-  await sendToActiveTab({
-    action: "setUiSettings",
-    showScrollbar: showScrollbarValue,
-    compactMargins: compactMargins.checked,
-  });
+  await sendToActiveTab(buildUiSettingsMessage({ showScrollbar: showScrollbarValue }));
 });
 
 compactMargins.addEventListener("change", async (e) => {
   const compactMarginsValue = e.target.checked;
   chrome.storage.local.set({ compactMargins: compactMarginsValue });
-  await sendToActiveTab({
-    action: "setUiSettings",
-    showScrollbar: showScrollbar.checked,
-    compactMargins: compactMarginsValue,
-  });
+  await sendToActiveTab(buildUiSettingsMessage({ compactMargins: compactMarginsValue }));
+});
+
+persistentCommentBox.addEventListener("change", async (e) => {
+  const persistentCommentBoxValue = e.target.checked;
+  chrome.storage.local.set({ persistentCommentBox: persistentCommentBoxValue });
+  await sendToActiveTab(buildUiSettingsMessage({ persistentCommentBox: persistentCommentBoxValue }));
 });
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -97,13 +150,22 @@ chrome.storage.onChanged.addListener((changes) => {
     toggle.checked = sidebarEnabledValue;
     setSubEnabled(sidebarEnabledValue);
   }
+  if (changes.autoExpand) {
+    autoExpand.checked = changes.autoExpand.newValue !== false;
+  }
   if (changes.showRelated) {
-    showRelated.checked = !!changes.showRelated.newValue;
+    showRelated.checked = changes.showRelated.newValue !== false;
   }
   if (changes.showScrollbar) {
-    showScrollbar.checked = !!changes.showScrollbar.newValue;
+    showScrollbar.checked = changes.showScrollbar.newValue === true;
   }
   if (changes.compactMargins) {
-    compactMargins.checked = !!changes.compactMargins.newValue;
+    compactMargins.checked = changes.compactMargins.newValue !== false;
+  }
+  if (changes.persistentCommentBox) {
+    persistentCommentBox.checked = changes.persistentCommentBox.newValue !== false;
+  }
+  if (changes.themeOverride) {
+    applyTheme(resolveTheme(changes.themeOverride.newValue));
   }
 });

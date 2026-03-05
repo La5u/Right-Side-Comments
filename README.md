@@ -14,6 +14,7 @@ Move YouTube comments to the right sidebar on watch pages.
 - `Show recommended`: show or hide related videos.
 - `Show scrollbar`: show/hide the comments scrollbar.
 - `Compact comments`: tighter comment spacing.
+- `Persistent comment box`: keep a fixed comments container in sidebar mode to reduce layout shifts.
 
 ## Defaults
 
@@ -22,6 +23,7 @@ Move YouTube comments to the right sidebar on watch pages.
 - `showRelated: true`
 - `showScrollbar: false`
 - `compactMargins: true`
+- `persistentCommentBox: true`
 
 ## Shortcut
 

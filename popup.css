@@ -8,9 +8,11 @@ body {
 }
 
 .popup {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-bottom: 12px;
 }
 
 .section-title {
@@ -38,12 +40,23 @@ label {
   margin-top: 6px;
 }
 
-/* Toggle switch style */
+.docs-link {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: #9fc9ff;
+  text-decoration: none;
+}
+
+.docs-link:hover {
+  text-decoration: underline;
+}
+
 .switch {
   position: relative;
   display: inline-block;
-  width: 42px;
-  height: 24px;
+  width: 40px;
+  height: 22px;
 }
 
 .switch input {
@@ -61,14 +74,14 @@ label {
   bottom: 0;
   background-color: #555;
   transition: 0.3s;
-  border-radius: 24px;
+  border-radius: 22px;
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
   background-color: white;
@@ -87,4 +100,69 @@ input:checked + .slider:before {
 input:disabled + .slider {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+  opacity: 0.8;
+}
+
+.theme-toggle:hover {
+  opacity: 1;
+}
+
+.theme-icon {
+  display: none;
+  width: 14px;
+  height: 14px;
+}
+
+:root[data-theme="dark"] .theme-icon-moon {
+  display: block;
+}
+
+:root[data-theme="light"] .theme-icon-sun {
+  display: block;
+}
+
+.version-label {
+  position: absolute;
+  right: 0;
+  bottom: -2px;
+  font-size: 10px;
+  color: #8f949a;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme="light"] body {
+  background: #f7f8fa;
+  color: #1f1f1f;
+}
+
+:root[data-theme="light"] .section-title {
+  color: #5f6368;
+}
+
+:root[data-theme="light"] .slider {
+  background-color: #b6bbc2;
+}
+
+:root[data-theme="light"] input:checked + .slider {
+  background-color: #1a73e8;
+}
+
+:root[data-theme="light"] .version-label {
+  color: #7d838a;
+}
+
+:root[data-theme="light"] .docs-link {
+  color: #1a73e8;
 }
