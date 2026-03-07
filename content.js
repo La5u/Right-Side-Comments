@@ -11,6 +11,7 @@ const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS);
 const withDefaults = (values = {}) =>
   Object.fromEntries(SETTINGS_KEYS.map((key) => [key, values[key] ?? DEFAULT_SETTINGS[key]]));
 const COMMENTS_SHELL_ID = "rsc-comments-shell";
+const COMMENTS_MAX_HEIGHT = "calc(100vh - 75px)";
 
 let activeToggleController = null;
 
@@ -55,13 +56,17 @@ function ensureCommentsShell(sec) {
   if (!sec) return null;
   const shell = qs(`#${COMMENTS_SHELL_ID}`, sec) || Object.assign(document.createElement("div"), { id: COMMENTS_SHELL_ID });
   Object.assign(shell.style, {
-    height: "calc(100vh - 75px)",
+    height: COMMENTS_MAX_HEIGHT,
     overflowY: "auto",
     marginBottom: "20px",
     width: "100%",
   });
   if (!shell.parentNode) sec.append(shell);
   return shell;
+}
+
+function resetCommentStyles(comments) {
+  Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
 async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox } = {}) {
@@ -87,9 +92,10 @@ async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox
   setRelatedDisplay(related, sidebarEnabled, showRelated);
 
   if (sidebarEnabled) {
+    // Sidebar mode without a shell: comments become the scroll container.
     const usePersistentBox = persistentCommentBox !== false;
     if (!usePersistentBox) {
-      Object.assign(comments.style, { maxHeight: "calc(100vh - 75px)", overflowY: "auto" });
+      Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
       if (showRelated && related?.parentNode === sec) sec.insertBefore(comments, related);
       else if (!sec.contains(comments)) sec.append(comments);
       if (showRelated && related?.parentNode !== sec) sec.append(related);
@@ -97,8 +103,9 @@ async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox
       return true;
     }
 
+    // Sidebar mode with a persistent shell: the shell scrolls, comments stay unbounded.
     const ensuredShell = ensureCommentsShell(sec);
-    Object.assign(comments.style, { maxHeight: "", overflowY: "" });
+    resetCommentStyles(comments);
     if (comments.parentNode !== ensuredShell) ensuredShell?.append(comments);
 
     if (showRelated && related?.parentNode === sec) sec.insertBefore(ensuredShell, related);
@@ -107,8 +114,11 @@ async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox
     return true;
   }
 
-  Object.assign(comments.style, { maxHeight: "", overflowY: "" });
-  qs("#below")?.append(comments);
+  // Restore the default YouTube layout.
+  resetCommentStyles(comments);
+  const below = await waitFor("#below", { signal });
+  if (signal.aborted || !below) return false;
+  below.append(comments);
   shell?.remove();
   return true;
 }
@@ -153,8 +163,8 @@ const messageHandlers = {
   async setShowRelated(settings) { await toggleSidebar(settings.sidebarEnabled, settings); },
   async setUiSettings(settings) {
     applyUiSettings(settings);
-    await toggleSidebar(settings.sidebarEnabled, settings);
   },
+  async setLayoutSettings(settings) { await toggleSidebar(settings.sidebarEnabled, settings); },
 };
 
 chrome.runtime.onMessage.addListener(async ({ action, ...values }) => {

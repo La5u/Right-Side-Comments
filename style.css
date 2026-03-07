@@ -16,11 +16,15 @@ ytd-comments#comments {
   margin-bottom: 0;
 }
 
-html.rsc-hide-scrollbar ytd-comments#comments {
+html.rsc-hide-scrollbar ytd-comments#comments,
+html.rsc-hide-scrollbar #rsc-comments-shell {
   scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-html.rsc-hide-scrollbar ytd-comments#comments::-webkit-scrollbar {
+html.rsc-hide-scrollbar ytd-comments#comments::-webkit-scrollbar,
+html.rsc-hide-scrollbar #rsc-comments-shell::-webkit-scrollbar {
   width: 0;
   height: 0;
+  display: none;
 }

@@ -57,10 +57,10 @@ chrome.commands.onCommand.addListener(async (command) => {
   const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
   const currentState = sidebarEnabled !== false;
   const newState = !currentState;
-  chrome.storage.local.set({ sidebarEnabled: newState });
+  await chrome.storage.local.set({ sidebarEnabled: newState });
 
   // Send toggle message to content script
-  chrome.tabs.sendMessage(tab.id, {
+  await chrome.tabs.sendMessage(tab.id, {
     action: "toggleCommentsSidebar",
-  });
+  }).catch(() => {});
 });
