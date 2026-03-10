@@ -13,6 +13,11 @@ const withDefaults = (values = {}) =>
 const COMMENTS_SHELL_ID = "rsc-comments-shell";
 const COMMENTS_MAX_HEIGHT = "calc(100vh - 75px)";
 
+const supportedVideoPage = () => {
+  const pathname = location.pathname || "";
+  return pathname === "/watch" || pathname.startsWith("/live/");
+};
+
 let activeToggleController = null;
 
 function waitFor(target, { signal } = {}) {
@@ -70,7 +75,7 @@ function resetCommentStyles(comments) {
 }
 
 async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox } = {}) {
-  if (location.pathname !== "/watch") return;
+  if (!supportedVideoPage()) return;
 
   activeToggleController?.abort();
   activeToggleController = new AbortController();
@@ -145,7 +150,7 @@ async function applyDescriptionBehavior(sidebarEnabled, autoExpand) {
 }
 
 async function applyFromStorage() {
-  if (location.pathname !== "/watch") return;
+  if (!supportedVideoPage()) return;
 
   const settings = await getSettings();
   applyUiSettings(settings);

@@ -34,7 +34,7 @@ chrome.runtime.onInstalled.addListener((details) => {
       persistentCommentBox: true,
     });
     chrome.tabs.create({
-      url: "https://la5u.github.io/Right-Side-Comments/",
+      url: "https://lasu.dev/right-side-comments",
     });
   }
   syncActionIconFromStorage();
