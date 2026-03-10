@@ -12,7 +12,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-bottom: 12px;
+  padding-bottom: 35px;
 }
 
 .section-title {
@@ -32,12 +32,6 @@ body {
 
 label {
   font-size: 14px;
-}
-
-.github-link {
-  display: flex;
-  justify-content: center;
-  margin-top: 6px;
 }
 
 .docs-link {
@@ -133,13 +127,41 @@ input:disabled + .slider {
   display: block;
 }
 
-.version-label {
+.footer {
   position: absolute;
   right: 0;
   bottom: -2px;
-  font-size: 10px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 6px;
   color: #8f949a;
   letter-spacing: 0.04em;
+}
+
+.footer-left {
+  justify-self: start;
+}
+
+.footer-center {
+  justify-self: center;
+}
+
+.version-label {
+  font-size: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  justify-self: end;
+}
+
+.footer-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }
 
 :root[data-theme="light"] body {
@@ -159,7 +181,7 @@ input:disabled + .slider {
   background-color: #1a73e8;
 }
 
-:root[data-theme="light"] .version-label {
+:root[data-theme="light"] .footer {
   color: #7d838a;
 }
 
