@@ -9,22 +9,42 @@ html.rsc-compact-margins div.ytSubThreadSubThreadContent {
 }
 
 ytd-comments#comments {
-  margin-bottom: 20px; /*space between comments and recommendations*/
+  margin-bottom: 20px;
 }
 
 #rsc-comments-shell > ytd-comments#comments {
   margin-bottom: 0;
 }
 
-html.rsc-hide-scrollbar ytd-comments#comments,
-html.rsc-hide-scrollbar #rsc-comments-shell {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* Hide side margins */
+html.rsc-hide-side-margins #columns {
+  max-width: none !important;
+  margin: 0 !important;
 }
 
-html.rsc-hide-scrollbar ytd-comments#comments::-webkit-scrollbar,
-html.rsc-hide-scrollbar #rsc-comments-shell::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+/* Inner scrollbar - hides scrollbar on comments box */
+html.rsc-hide-inner-scrollbar ytd-comments#comments,
+html.rsc-hide-inner-scrollbar #rsc-comments-shell {
+  scrollbar-width: none;
+}
+
+html.rsc-hide-inner-scrollbar ytd-comments#comments::-webkit-scrollbar,
+html.rsc-hide-inner-scrollbar #rsc-comments-shell::-webkit-scrollbar {
   display: none;
 }
+
+/* Outer scrollbar - hides scrollbar on whole page */
+html.rsc-hide-outer-scrollbar {
+  scrollbar-width: none;
+}
+
+html.rsc-hide-outer-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Comments width - only when user has set it */
+html.rsc-comments-sidebar-active.rsc-custom-width #secondary.ytd-watch-flexy {
+  width: var(--comments-width) !important;
+  flex: 0 0 var(--comments-width) !important;
+}
+

@@ -21,9 +21,12 @@ chrome.runtime.onInstalled.addListener((details) => {
     sidebarEnabled: true,
     autoExpand: true,
     showRelated: true,
-    showScrollbar: false,
+    innerScrollbar: true,
+    outerScrollbar: false,
     compactMargins: true,
-    persistentCommentBox: true,
+    staticCommentBox: true,
+    commentsWidth: null,
+    hideSideMargins: false,
   });
     chrome.tabs.create({
       url: "https://lasu.dev/right-side-comments",

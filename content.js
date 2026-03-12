@@ -1,11 +1,15 @@
 const qs = (s, root = document) => root?.querySelector(s) || null;
+// Default settings - canonical source of truth for all settings
 const DEFAULT_SETTINGS = {
   sidebarEnabled: true,
   autoExpand: true,
   showRelated: true,
-  showScrollbar: false,
+  innerScrollbar: true,
+  outerScrollbar: false,
   compactMargins: true,
-  persistentCommentBox: true,
+  staticCommentBox: true,
+  commentsWidth: null,
+  hideSideMargins: false,
 };
 const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS);
 const withDefaults = (values = {}) =>
@@ -74,7 +78,7 @@ function resetCommentStyles(comments) {
   Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
-async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox } = {}) {
+async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}) {
   if (!supportedVideoPage()) return;
 
   activeToggleController?.abort();
@@ -82,7 +86,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox
   const signal = activeToggleController.signal;
 
   const [sec, comments] = await Promise.all([
-    waitFor("div#secondary.ytd-watch-flexy", { signal }),
+    waitFor("div#secondary.ytd-watch-flexy", { signal }), // full name required so it only works on watch pages
     waitFor("ytd-comments#comments", { signal }),
   ]);
   if (signal.aborted || !sec) return false;
@@ -95,15 +99,20 @@ async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox
   }
 
   setRelatedDisplay(related, sidebarEnabled, showRelated);
+  document.documentElement.classList.toggle("rsc-comments-sidebar-active", sidebarEnabled);
 
   if (sidebarEnabled) {
     // Sidebar mode without a shell: comments become the scroll container.
-    const usePersistentBox = persistentCommentBox !== false;
-    if (!usePersistentBox) {
+    const useStaticBox = isStatic !== false;
+    if (!useStaticBox) {
       Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
-      if (showRelated && related?.parentNode === sec) sec.insertBefore(comments, related);
-      else if (!sec.contains(comments)) sec.append(comments);
-      if (showRelated && related?.parentNode !== sec) sec.append(related);
+    if (showRelated && related?.parentNode === sec) {
+      sec.insertBefore(comments, related);
+    } else {
+      sec.append(comments);
+    }
+
+    if (showRelated && related?.parentNode !== sec) sec.append(related);
       shell?.remove();
       return true;
     }
@@ -128,11 +137,22 @@ async function toggleSidebar(sidebarEnabled, { showRelated, persistentCommentBox
   return true;
 }
 
-function applyUiSettings({ showScrollbar, compactMargins }) {
+function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }) {
   const root = document.documentElement;
   if (!root) return;
-  root.classList.toggle("rsc-hide-scrollbar", !showScrollbar);
+  root.classList.toggle("rsc-hide-inner-scrollbar", innerScrollbar);
+  root.classList.toggle("rsc-hide-outer-scrollbar", outerScrollbar);
   root.classList.toggle("rsc-compact-margins", compactMargins);
+  root.classList.toggle("rsc-hide-side-margins", hideSideMargins);
+  
+  // Only apply width if user has explicitly set it (experimental feature)
+  if (commentsWidth != null && commentsWidth !== "") {
+    root.style.setProperty("--comments-width", `${commentsWidth}%`);
+    root.classList.add("rsc-custom-width");
+  } else {
+    root.style.removeProperty("--comments-width");
+    root.classList.remove("rsc-custom-width");
+  }
 }
 
 async function applyDescriptionBehavior(sidebarEnabled, autoExpand) {
@@ -166,10 +186,14 @@ const messageHandlers = {
   async toggleCommentsSidebar() { await applyFromStorage(); },
   async setAutoExpand(settings) { await applyDescriptionBehavior(settings.sidebarEnabled, settings.autoExpand); },
   async setShowRelated(settings) { await toggleSidebar(settings.sidebarEnabled, settings); },
-  async setUiSettings(settings) {
+  async setUiSettings() {
+    const settings = await getSettings();
     applyUiSettings(settings);
   },
-  async setLayoutSettings(settings) { await toggleSidebar(settings.sidebarEnabled, settings); },
+async setLayoutSettings() {
+  const settings = await getSettings();
+  await toggleSidebar(settings.sidebarEnabled, settings);
+},
 };
 
 chrome.runtime.onMessage.addListener(async ({ action, ...values }) => {
