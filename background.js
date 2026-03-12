@@ -1,19 +1,10 @@
 function getActionIconPath(enabled) {
-  return enabled
-    ? {
-        16: "assets/icon16.png",
-        32: "assets/icon32.png",
-        48: "assets/icon48.png",
-        96: "assets/icon96.png",
-        128: "assets/icon128.png",
-      }
-    : {
-        16: "assets/iconoff16.png",
-        32: "assets/iconoff32.png",
-        48: "assets/iconoff48.png",
-        96: "assets/iconoff96.png",
-        128: "assets/iconoff128.png",
-      };
+  const sizes = [16, 32, 48, 96, 128];
+  const suffix = enabled ? "" : "off";
+  return Object.fromEntries(sizes.map((size) => [
+    size,
+    `assets/icon${suffix}${size}.png`,
+  ]));
 }
 
 async function syncActionIconFromStorage() {
@@ -25,14 +16,15 @@ async function syncActionIconFromStorage() {
 chrome.runtime.onInstalled.addListener((details) => {
   // Keep user settings on updates; only seed defaults on first install.
   if (details.reason === "install") {
+    // Default settings - must match DEFAULT_SETTINGS in content.js
     chrome.storage.local.set({
-      sidebarEnabled: true,
-      autoExpand: true,
-      showRelated: true,
-      showScrollbar: false,
-      compactMargins: true,
-      persistentCommentBox: true,
-    });
+    sidebarEnabled: true,
+    autoExpand: true,
+    showRelated: true,
+    showScrollbar: false,
+    compactMargins: true,
+    persistentCommentBox: true,
+  });
     chrome.tabs.create({
       url: "https://lasu.dev/right-side-comments",
     });
