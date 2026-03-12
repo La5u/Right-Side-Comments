@@ -2,26 +2,62 @@ const toggle = document.getElementById("toggle");
 const toggleLabel = document.getElementById("toggleLabel");
 const autoExpand = document.getElementById("autoExpand");
 const showRelated = document.getElementById("showRelated");
-const showScrollbar = document.getElementById("showScrollbar");
+const innerScrollbar = document.getElementById("innerScrollbar");
+const outerScrollbar = document.getElementById("outerScrollbar");
 const compactMargins = document.getElementById("compactMargins");
-const persistentCommentBox = document.getElementById("persistentCommentBox");
+const staticCommentBox = document.getElementById("staticCommentBox");
+const commentsWidth = document.getElementById("commentsWidth");
+const commentsWidthValue = document.getElementById("commentsWidthValue");
+const hideSideMargins = document.getElementById("hideSideMargins");
+const resetBtn = document.getElementById("resetBtn");
 const themeToggle = document.getElementById("themeToggle");
 const versionLabel = document.getElementById("versionLabel");
 const root = document.documentElement;
+let currentThemeOverride = null;
+
+// Collapsible sections
+const defaults = { behavior: true, ui: true, experimental: false };
+let state = JSON.parse(localStorage.getItem("rsc-sections"));
+if (!state) state = { ...defaults };
+
+document.querySelectorAll(".section-title").forEach(title => {
+  const targetId = title.dataset.toggle;
+  const content = document.getElementById(targetId);
+  const isOpen = state[targetId] ?? defaults[targetId];
+  
+  if (!isOpen) {
+    content.style.display = "none";
+    title.textContent = title.textContent.replace("▾", "▸");
+  }
+  
+  title.addEventListener("click", () => {
+    const currentlyHidden = content.style.display === "none";
+    if (currentlyHidden) {
+      content.style.display = "flex";
+      title.textContent = title.textContent.replace("▸", "▾");
+      state[targetId] = true;
+    } else {
+      content.style.display = "none";
+      title.textContent = title.textContent.replace("▾", "▸");
+      state[targetId] = false;
+    }
+    localStorage.setItem("rsc-sections", JSON.stringify(state));
+  });
+});
 // Settings keys - syncs with DEFAULT_SETTINGS in content.js
 // Note: themeOverride is popup-specific and not in content.js
 const STORAGE_KEYS = [
   "sidebarEnabled",
   "autoExpand",
   "showRelated",
-  "showScrollbar",
+  "innerScrollbar",
+  "outerScrollbar",
   "compactMargins",
-  "persistentCommentBox",
+  "staticCommentBox",
+  "commentsWidth",
+  "hideSideMargins",
   "themeOverride",
 ];
-const THEME_OVERRIDE_KEY = "themeOverride";
-
-applyTheme(getSystemTheme());
 
 function getSystemTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -31,16 +67,21 @@ function applyTheme(theme) {
   root.dataset.theme = theme;
 }
 
-function resolveTheme(override) {
-  return override === "dark" || override === "light" ? override : getSystemTheme();
+function applyThemeWithOverride() {
+  const theme = currentThemeOverride === "dark" || currentThemeOverride === "light" 
+    ? currentThemeOverride 
+    : getSystemTheme();
+  applyTheme(theme);
 }
 
 function setSubEnabled(mainOn) {
   autoExpand.disabled = !mainOn;
   showRelated.disabled = !mainOn;
-  showScrollbar.disabled = !mainOn;
+  innerScrollbar.disabled = !mainOn;
+  outerScrollbar.disabled = !mainOn;
   compactMargins.disabled = !mainOn;
-  persistentCommentBox.disabled = !mainOn;
+  staticCommentBox.disabled = !mainOn;
+  hideSideMargins.disabled = !mainOn;
 }
 
 async function updateShortcutLabel() {
@@ -61,14 +102,28 @@ async function sendToActiveTab(message) {
 }
 chrome.storage.local.get(STORAGE_KEYS, (d) => {
   const sidebarEnabledValue = d.sidebarEnabled !== false;
+  currentThemeOverride = d.themeOverride;
 
   toggle.checked = sidebarEnabledValue;
   autoExpand.checked = d.autoExpand !== false;
   showRelated.checked = d.showRelated !== false;
-  showScrollbar.checked = d.showScrollbar === true;
+  innerScrollbar.checked = d.innerScrollbar !== false;
+  outerScrollbar.checked = d.outerScrollbar === true;
   compactMargins.checked = d.compactMargins !== false;
-  persistentCommentBox.checked = d.persistentCommentBox !== false;
-  applyTheme(resolveTheme(d.themeOverride));
+  staticCommentBox.checked = d.staticCommentBox !== false;
+  
+  // Show empty if no width set, otherwise show the value
+  if (d.commentsWidth !== undefined && d.commentsWidth !== null) {
+    commentsWidth.value = d.commentsWidth;
+    commentsWidthValue.textContent = `${d.commentsWidth}%`;
+  } else {
+    commentsWidth.value = 27;
+    commentsWidthValue.textContent = "";
+  }
+  
+  hideSideMargins.checked = d.hideSideMargins === true;
+  
+  applyThemeWithOverride();
   setSubEnabled(sidebarEnabledValue);
 });
 updateShortcutLabel();
@@ -77,17 +132,14 @@ const version = chrome.runtime.getManifest().version;
 versionLabel.textContent = `v${version}`;
 
 const mediaTheme = window.matchMedia("(prefers-color-scheme: dark)");
-mediaTheme.addEventListener("change", async () => {
-  const data = await chrome.storage.local.get(THEME_OVERRIDE_KEY);
-  if (data.themeOverride !== "dark" && data.themeOverride !== "light") {
-    applyTheme(getSystemTheme());
-  }
-});
+mediaTheme.addEventListener("change", applyThemeWithOverride);
 
 themeToggle.addEventListener("click", async () => {
-  const data = await chrome.storage.local.get(THEME_OVERRIDE_KEY);
-  const currentTheme = resolveTheme(data.themeOverride);
+  const currentTheme = currentThemeOverride === "dark" || currentThemeOverride === "light" 
+    ? currentThemeOverride 
+    : getSystemTheme();
   const nextTheme = currentTheme === "dark" ? "light" : "dark";
+  currentThemeOverride = nextTheme;
   await chrome.storage.local.set({ themeOverride: nextTheme });
   applyTheme(nextTheme);
 });
@@ -100,23 +152,62 @@ toggle.addEventListener("change", async (e) => {
 });
 
 const SETTINGS = [
-  { id: "autoExpand", action: "setAutoExpand", extra: () => ({ sidebarEnabled: toggle.checked }) },
-  { id: "showRelated", action: "setShowRelated", extra: () => ({ sidebarEnabled: toggle.checked }) },
-  { id: "showScrollbar", action: "setUiSettings", extra: () => ({ compactMargins: compactMargins.checked }) },
-  { id: "compactMargins", action: "setUiSettings", extra: () => ({ showScrollbar: showScrollbar.checked }) },
-  { id: "persistentCommentBox", action: "setLayoutSettings", extra: () => ({ sidebarEnabled: toggle.checked, showRelated: showRelated.checked }) },
+  { id: "autoExpand", action: "setAutoExpand" },
+  { id: "showRelated", action: "setShowRelated" },
+  { id: "innerScrollbar", action: "setUiSettings" },
+  { id: "outerScrollbar", action: "setUiSettings" },
+  { id: "compactMargins", action: "setUiSettings" },
+  { id: "staticCommentBox", action: "setLayoutSettings" },
+  { id: "hideSideMargins", action: "setUiSettings" },
 ];
 
-for (const { id, action, extra } of SETTINGS) {
+for (const { id, action } of SETTINGS) {
   document.getElementById(id).addEventListener("change", async (e) => {
     const value = e.target.checked;
     await chrome.storage.local.set({ [id]: value });
-    await sendToActiveTab({ action, [id]: value, ...extra() });
+    await sendToActiveTab({ action, [id]: value });
   });
 }
 
+commentsWidth.addEventListener("input", async (e) => {
+  const value = parseInt(e.target.value);
+  commentsWidthValue.textContent = `${value}%`;
+  commentsWidth.disabled = false;
+  await chrome.storage.local.set({ commentsWidth: value });
+  await sendToActiveTab({ action: "setUiSettings" });
+});
+
+resetBtn.addEventListener("click", async () => {
+  const defaults = {
+    sidebarEnabled: true,
+    autoExpand: true,
+    showRelated: true,
+    innerScrollbar: true,
+    outerScrollbar: false,
+    compactMargins: true,
+    staticCommentBox: true,
+    commentsWidth: null,
+    hideSideMargins: false,
+  };
+  await chrome.storage.local.set(defaults);
+  
+  toggle.checked = true;
+  autoExpand.checked = true;
+  showRelated.checked = true;
+  innerScrollbar.checked = true;
+  outerScrollbar.checked = false;
+  compactMargins.checked = true;
+  staticCommentBox.checked = true;
+  commentsWidth.value = 27;
+  commentsWidthValue.textContent = "";
+  hideSideMargins.checked = false;
+  
+  setSubEnabled(true);
+  await sendToActiveTab({ action: "toggleCommentsSidebar" });
+});
+
 chrome.storage.onChanged.addListener((changes) => {
-  const checkboxes = { autoExpand, showRelated, showScrollbar, compactMargins, persistentCommentBox };
+  const checkboxes = { autoExpand, showRelated, innerScrollbar, outerScrollbar, compactMargins, staticCommentBox, hideSideMargins };
 
   for (const key in changes) {
     if (key in checkboxes) {
@@ -129,7 +220,19 @@ chrome.storage.onChanged.addListener((changes) => {
     setSubEnabled(toggle.checked);
   }
 
+  if (changes.commentsWidth) {
+    const val = changes.commentsWidth.newValue;
+    if (val != null) {
+      commentsWidth.value = val;
+      commentsWidthValue.textContent = `${val}%`;
+    } else {
+      commentsWidth.value = 27;
+      commentsWidthValue.textContent = "";
+    }
+  }
+
   if (changes.themeOverride) {
-    applyTheme(resolveTheme(changes.themeOverride.newValue));
+    currentThemeOverride = changes.themeOverride.newValue;
+    applyThemeWithOverride();
   }
 });

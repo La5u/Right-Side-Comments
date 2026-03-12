@@ -18,76 +18,92 @@
       <img class="theme-icon theme-icon-moon" src="assets/theme-moon.svg" alt="" aria-hidden="true" />
     </button>
 
-    <div class="section-title">Behavior</div>
+    <div class="section-title" data-toggle="behavior">Behavior ▾</div>
+    <div class="section-content" id="behavior">
+      <div class="row">
+        <label for="toggle" id="toggleLabel">Sidebar (Ctrl+Shift+Y)</label>
+        <label class="switch">
+          <input type="checkbox" id="toggle" />
+          <span class="slider"></span>
+        </label>
+      </div>
 
-    <div class="row">
-      <label for="toggle" id="toggleLabel">Sidebar (Ctrl+Shift+Y)</label>
-      <label class="switch">
-        <input type="checkbox" id="toggle" />
-        <span class="slider"></span>
-      </label>
+      <div class="row">
+        <label for="autoExpand">Expand description</label>
+        <label class="switch">
+          <input type="checkbox" id="autoExpand" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="row">
+        <label for="showRelated">Related videos</label>
+        <label class="switch">
+          <input type="checkbox" id="showRelated" />
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
-    <div class="row">
-      <label for="autoExpand">Expand description</label>
-      <label class="switch">
-        <input type="checkbox" id="autoExpand" />
-        <span class="slider"></span>
-      </label>
+    <div class="section-title" data-toggle="ui">UI ▾</div>
+    <div class="section-content" id="ui">
+      <div class="row">
+        <label for="compactMargins">Compact comments</label>
+        <label class="switch">
+          <input type="checkbox" id="compactMargins" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="row">
+        <label for="staticCommentBox">Static comment box</label>
+        <label class="switch">
+          <input type="checkbox" id="staticCommentBox" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="scrollbar-label">Hide scrollbar</label>
+        <div class="scrollbar-options">
+          <label class="checkbox-label">
+            <input type="checkbox" id="innerScrollbar" />
+            <span>Inner</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="outerScrollbar" />
+            <span>Outer</span>
+          </label>
+        </div>
+      </div>
     </div>
 
-    <div class="row">
-      <label for="showRelated">Show recommended</label>
-      <label class="switch">
-        <input type="checkbox" id="showRelated" />
-        <span class="slider"></span>
-      </label>
-    </div>
+    <div class="section-title" data-toggle="experimental">Experimental ▸</div>
+    <div class="section-content" id="experimental">
+      <div class="row">
+        <label>Comments width</label>
+        <div class="slider-container">
+          <span id="commentsWidthValue"></span>
+        </div>
+      </div>
+      <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" />
 
-    <div class="section-title">UI</div>
-
-    <div class="row">
-      <label for="showScrollbar">Show scrollbar</label>
-      <label class="switch">
-        <input type="checkbox" id="showScrollbar" />
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="row">
-      <label for="compactMargins">Compact comments</label>
-      <label class="switch">
-        <input type="checkbox" id="compactMargins" />
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="row">
-      <label for="persistentCommentBox">Persistent comment box</label>
-      <label class="switch">
-        <input type="checkbox" id="persistentCommentBox" />
-        <span class="slider"></span>
-      </label>
+      <div class="row">
+        <label for="hideSideMargins">Hide side margins</label>
+        <label class="switch">
+          <input type="checkbox" id="hideSideMargins" />
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
     <div class="footer">
-      <a
-        class="footer-link footer-left"
-        href="https://github.com/La5u/Right-Side-Comments"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        GitHub
-      </a>
-      <a
-        class="footer-link footer-center"
-        href="https://lasu.dev/right-side-comments"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Homepage
-      </a>
-      <div id="versionLabel" class="version-label" aria-label="Extension version"></div>
+      <div id="resetBtn" class="footer-link">Reset settings</div>
+      <div class="footer-links">
+        <a class="footer-link" href="https://github.com/La5u/Right-Side-Comments" target="_blank">GitHub</a>
+        <a class="footer-link" href="https://lasu.dev/right-side-comments" target="_blank">Homepage</a>
+        <span id="versionLabel" class="version-label"></span>
+      </div>
     </div>
   </div>
   <script src="popup.js"></script>
