@@ -8,6 +8,8 @@ const persistentCommentBox = document.getElementById("persistentCommentBox");
 const themeToggle = document.getElementById("themeToggle");
 const versionLabel = document.getElementById("versionLabel");
 const root = document.documentElement;
+// Settings keys - syncs with DEFAULT_SETTINGS in content.js
+// Note: themeOverride is popup-specific and not in content.js
 const STORAGE_KEYS = [
   "sidebarEnabled",
   "autoExpand",
@@ -42,9 +44,7 @@ function setSubEnabled(mainOn) {
 }
 
 async function updateShortcutLabel() {
-  const info = await new Promise((resolve) => {
-    chrome.runtime.getPlatformInfo((platformInfo) => resolve(platformInfo));
-  });
+  const info = await chrome.runtime.getPlatformInfo();
   const shortcut =
     info.os === "mac" ? "⌘+Shift+Y" : info.os === "linux" ? "Ctrl+Shift+U" : "Ctrl+Shift+Y";
   toggleLabel.textContent = `Sidebar (${shortcut})`;
@@ -99,78 +99,36 @@ toggle.addEventListener("change", async (e) => {
   await sendToActiveTab({ action: "toggleCommentsSidebar" });
 });
 
-autoExpand.addEventListener("change", async (e) => {
-  const autoExpandValue = e.target.checked;
-  await chrome.storage.local.set({ autoExpand: autoExpandValue });
-  await sendToActiveTab({
-    action: "setAutoExpand",
-    autoExpand: autoExpandValue,
-    sidebarEnabled: toggle.checked,
-  });
-});
+const SETTINGS = [
+  { id: "autoExpand", action: "setAutoExpand", extra: () => ({ sidebarEnabled: toggle.checked }) },
+  { id: "showRelated", action: "setShowRelated", extra: () => ({ sidebarEnabled: toggle.checked }) },
+  { id: "showScrollbar", action: "setUiSettings", extra: () => ({ compactMargins: compactMargins.checked }) },
+  { id: "compactMargins", action: "setUiSettings", extra: () => ({ showScrollbar: showScrollbar.checked }) },
+  { id: "persistentCommentBox", action: "setLayoutSettings", extra: () => ({ sidebarEnabled: toggle.checked, showRelated: showRelated.checked }) },
+];
 
-showRelated.addEventListener("change", async (e) => {
-  const showRelatedValue = e.target.checked;
-  await chrome.storage.local.set({ showRelated: showRelatedValue });
-  await sendToActiveTab({
-    action: "setShowRelated",
-    showRelated: showRelatedValue,
-    sidebarEnabled: toggle.checked,
+for (const { id, action, extra } of SETTINGS) {
+  document.getElementById(id).addEventListener("change", async (e) => {
+    const value = e.target.checked;
+    await chrome.storage.local.set({ [id]: value });
+    await sendToActiveTab({ action, [id]: value, ...extra() });
   });
-});
-
-showScrollbar.addEventListener("change", async (e) => {
-  const showScrollbarValue = e.target.checked;
-  await chrome.storage.local.set({ showScrollbar: showScrollbarValue });
-  await sendToActiveTab({
-    action: "setUiSettings",
-    showScrollbar: showScrollbarValue,
-    compactMargins: compactMargins.checked,
-  });
-});
-
-compactMargins.addEventListener("change", async (e) => {
-  const compactMarginsValue = e.target.checked;
-  await chrome.storage.local.set({ compactMargins: compactMarginsValue });
-  await sendToActiveTab({
-    action: "setUiSettings",
-    showScrollbar: showScrollbar.checked,
-    compactMargins: compactMarginsValue,
-  });
-});
-
-persistentCommentBox.addEventListener("change", async (e) => {
-  const persistentCommentBoxValue = e.target.checked;
-  await chrome.storage.local.set({ persistentCommentBox: persistentCommentBoxValue });
-  await sendToActiveTab({
-    action: "setLayoutSettings",
-    sidebarEnabled: toggle.checked,
-    showRelated: showRelated.checked,
-    persistentCommentBox: persistentCommentBoxValue,
-  });
-});
+}
 
 chrome.storage.onChanged.addListener((changes) => {
+  const checkboxes = { autoExpand, showRelated, showScrollbar, compactMargins, persistentCommentBox };
+
+  for (const key in changes) {
+    if (key in checkboxes) {
+      checkboxes[key].checked = changes[key].newValue;
+    }
+  }
+
   if (changes.sidebarEnabled) {
-    const sidebarEnabledValue = changes.sidebarEnabled.newValue !== false;
-    toggle.checked = sidebarEnabledValue;
-    setSubEnabled(sidebarEnabledValue);
+    toggle.checked = changes.sidebarEnabled.newValue !== false;
+    setSubEnabled(toggle.checked);
   }
-  if (changes.autoExpand) {
-    autoExpand.checked = changes.autoExpand.newValue !== false;
-  }
-  if (changes.showRelated) {
-    showRelated.checked = changes.showRelated.newValue !== false;
-  }
-  if (changes.showScrollbar) {
-    showScrollbar.checked = changes.showScrollbar.newValue === true;
-  }
-  if (changes.compactMargins) {
-    compactMargins.checked = changes.compactMargins.newValue !== false;
-  }
-  if (changes.persistentCommentBox) {
-    persistentCommentBox.checked = changes.persistentCommentBox.newValue !== false;
-  }
+
   if (changes.themeOverride) {
     applyTheme(resolveTheme(changes.themeOverride.newValue));
   }
