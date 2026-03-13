@@ -1,18 +1,10 @@
 const toggle = document.getElementById("toggle");
 const toggleLabel = document.getElementById("toggleLabel");
-const autoExpand = document.getElementById("autoExpand");
-const showRelated = document.getElementById("showRelated");
-const innerScrollbar = document.getElementById("innerScrollbar");
-const outerScrollbar = document.getElementById("outerScrollbar");
-const compactMargins = document.getElementById("compactMargins");
-const staticCommentBox = document.getElementById("staticCommentBox");
 const commentsWidth = document.getElementById("commentsWidth");
 const commentsWidthValue = document.getElementById("commentsWidthValue");
-const hideSideMargins = document.getElementById("hideSideMargins");
 const resetBtn = document.getElementById("resetBtn");
 const themeToggle = document.getElementById("themeToggle");
 const versionLabel = document.getElementById("versionLabel");
-const root = document.documentElement;
 let currentThemeOverride = null;
 
 // Collapsible sections
@@ -28,6 +20,9 @@ document.querySelectorAll(".section-title").forEach(title => {
   if (!isOpen) {
     content.style.display = "none";
     title.textContent = title.textContent.replace("▾", "▸");
+  } else {
+    content.style.display = "flex";
+    title.textContent = title.textContent.replace("▸", "▾");
   }
   
   title.addEventListener("click", () => {
@@ -44,19 +39,31 @@ document.querySelectorAll(".section-title").forEach(title => {
     localStorage.setItem("rsc-sections", JSON.stringify(state));
   });
 });
-// Settings keys - syncs with DEFAULT_SETTINGS in content.js
-// Note: themeOverride is popup-specific and not in content.js
-const STORAGE_KEYS = [
-  "sidebarEnabled",
+// Default values matching content.js DEFAULT_SETTINGS
+const DEFAULTS = {
+  sidebarEnabled: true,
+  autoExpand: true,
+  showRelated: true,
+  innerScrollbar: true,
+  outerScrollbar: false,
+  compactMargins: true,
+  staticCommentBox: true,
+  commentsWidth: null,
+  hideSideMargins: false,
+};
+
+const STORAGE_KEYS = Object.keys(DEFAULTS).concat("themeOverride");
+
+// Sub-controls to dim when sidebar is off
+const SUB_CONTROLS = [
   "autoExpand",
   "showRelated",
-  "innerScrollbar",
-  "outerScrollbar",
   "compactMargins",
   "staticCommentBox",
-  "commentsWidth",
   "hideSideMargins",
-  "themeOverride",
+  "innerScrollbar",
+  "outerScrollbar",
+  "commentsWidth",
 ];
 
 function getSystemTheme() {
@@ -64,7 +71,7 @@ function getSystemTheme() {
 }
 
 function applyTheme(theme) {
-  root.dataset.theme = theme;
+  document.documentElement.dataset.theme = theme;
 }
 
 function applyThemeWithOverride() {
@@ -75,13 +82,16 @@ function applyThemeWithOverride() {
 }
 
 function setSubEnabled(mainOn) {
-  autoExpand.disabled = !mainOn;
-  showRelated.disabled = !mainOn;
-  innerScrollbar.disabled = !mainOn;
-  outerScrollbar.disabled = !mainOn;
-  compactMargins.disabled = !mainOn;
-  staticCommentBox.disabled = !mainOn;
-  hideSideMargins.disabled = !mainOn;
+  for (const id of SUB_CONTROLS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.disabled = !mainOn;
+    el.closest(".row")?.classList.toggle("dimmer", !mainOn);
+    if (id === "commentsWidth") {
+      el.previousElementSibling?.classList.toggle("dimmer", !mainOn);
+      el.classList.toggle("dimmer", !mainOn);
+    }
+  }
 }
 
 async function updateShortcutLabel() {
@@ -101,30 +111,29 @@ async function sendToActiveTab(message) {
   }
 }
 chrome.storage.local.get(STORAGE_KEYS, (d) => {
-  const sidebarEnabledValue = d.sidebarEnabled !== false;
   currentThemeOverride = d.themeOverride;
 
-  toggle.checked = sidebarEnabledValue;
-  autoExpand.checked = d.autoExpand !== false;
-  showRelated.checked = d.showRelated !== false;
-  innerScrollbar.checked = d.innerScrollbar !== false;
-  outerScrollbar.checked = d.outerScrollbar === true;
-  compactMargins.checked = d.compactMargins !== false;
-  staticCommentBox.checked = d.staticCommentBox !== false;
+  toggle.checked = d.sidebarEnabled ?? DEFAULTS.sidebarEnabled;
   
-  // Show empty if no width set, otherwise show the value
-  if (d.commentsWidth !== undefined && d.commentsWidth !== null) {
-    commentsWidth.value = d.commentsWidth;
-    commentsWidthValue.textContent = `${d.commentsWidth}%`;
-  } else {
-    commentsWidth.value = 27;
-    commentsWidthValue.textContent = "";
+  for (const id of SUB_CONTROLS) {
+    const el = document.getElementById(id);
+    if (!el || el.tagName === "INPUT" && el.type !== "checkbox") continue;
+    if (id === "commentsWidth") {
+      const val = d.commentsWidth ?? DEFAULTS.commentsWidth;
+      if (val != null) {
+        el.value = val;
+        commentsWidthValue.textContent = `${val}%`;
+      } else {
+        el.value = 27;
+        commentsWidthValue.textContent = "";
+      }
+    } else {
+      el.checked = d[id] ?? DEFAULTS[id];
+    }
   }
-  
-  hideSideMargins.checked = d.hideSideMargins === true;
-  
+
   applyThemeWithOverride();
-  setSubEnabled(sidebarEnabledValue);
+  setSubEnabled(toggle.checked);
 });
 updateShortcutLabel();
 
@@ -151,72 +160,47 @@ toggle.addEventListener("change", async (e) => {
   await sendToActiveTab({ action: "toggleCommentsSidebar" });
 });
 
-const SETTINGS = [
-  { id: "autoExpand", action: "setAutoExpand" },
-  { id: "showRelated", action: "setShowRelated" },
-  { id: "innerScrollbar", action: "setUiSettings" },
-  { id: "outerScrollbar", action: "setUiSettings" },
-  { id: "compactMargins", action: "setUiSettings" },
-  { id: "staticCommentBox", action: "setLayoutSettings" },
-  { id: "hideSideMargins", action: "setUiSettings" },
-];
-
-for (const { id, action } of SETTINGS) {
-  document.getElementById(id).addEventListener("change", async (e) => {
-    const value = e.target.checked;
+for (const id of SUB_CONTROLS) {
+  const el = document.getElementById(id);
+  if (!el) continue;
+  const action = el.dataset.action;
+  const eventType = el.type === "range" ? "input" : "change";
+  el.addEventListener(eventType, async (e) => {
+    const value = el.type === "range" ? parseInt(e.target.value) : e.target.checked;
     await chrome.storage.local.set({ [id]: value });
-    await sendToActiveTab({ action, [id]: value });
+    if (action) await sendToActiveTab({ action });
   });
 }
 
-commentsWidth.addEventListener("input", async (e) => {
-  const value = parseInt(e.target.value);
-  commentsWidthValue.textContent = `${value}%`;
-  commentsWidth.disabled = false;
-  await chrome.storage.local.set({ commentsWidth: value });
-  await sendToActiveTab({ action: "setUiSettings" });
-});
-
 resetBtn.addEventListener("click", async () => {
-  const defaults = {
-    sidebarEnabled: true,
-    autoExpand: true,
-    showRelated: true,
-    innerScrollbar: true,
-    outerScrollbar: false,
-    compactMargins: true,
-    staticCommentBox: true,
-    commentsWidth: null,
-    hideSideMargins: false,
-  };
-  await chrome.storage.local.set(defaults);
+  await chrome.storage.local.set(DEFAULTS);
   
-  toggle.checked = true;
-  autoExpand.checked = true;
-  showRelated.checked = true;
-  innerScrollbar.checked = true;
-  outerScrollbar.checked = false;
-  compactMargins.checked = true;
-  staticCommentBox.checked = true;
-  commentsWidth.value = 27;
-  commentsWidthValue.textContent = "";
-  hideSideMargins.checked = false;
+  toggle.checked = DEFAULTS.sidebarEnabled;
+  for (const id of SUB_CONTROLS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (id === "commentsWidth") {
+      el.value = 27;
+      commentsWidthValue.textContent = "";
+    } else {
+      el.checked = DEFAULTS[id];
+    }
+  }
   
   setSubEnabled(true);
   await sendToActiveTab({ action: "toggleCommentsSidebar" });
 });
 
 chrome.storage.onChanged.addListener((changes) => {
-  const checkboxes = { autoExpand, showRelated, innerScrollbar, outerScrollbar, compactMargins, staticCommentBox, hideSideMargins };
-
   for (const key in changes) {
-    if (key in checkboxes) {
-      checkboxes[key].checked = changes[key].newValue;
+    const el = document.getElementById(key);
+    if (!el || el.type === "checkbox") {
+      if (el) el.checked = changes[key].newValue;
     }
   }
 
   if (changes.sidebarEnabled) {
-    toggle.checked = changes.sidebarEnabled.newValue !== false;
+    toggle.checked = changes.sidebarEnabled.newValue;
     setSubEnabled(toggle.checked);
   }
 

@@ -31,7 +31,7 @@
       <div class="row">
         <label for="autoExpand">Expand description</label>
         <label class="switch">
-          <input type="checkbox" id="autoExpand" />
+          <input type="checkbox" id="autoExpand" data-action="setAutoExpand" />
           <span class="slider"></span>
         </label>
       </div>
@@ -39,7 +39,7 @@
       <div class="row">
         <label for="showRelated">Related videos</label>
         <label class="switch">
-          <input type="checkbox" id="showRelated" />
+          <input type="checkbox" id="showRelated" data-action="setShowRelated" />
           <span class="slider"></span>
         </label>
       </div>
@@ -50,7 +50,7 @@
       <div class="row">
         <label for="compactMargins">Compact comments</label>
         <label class="switch">
-          <input type="checkbox" id="compactMargins" />
+          <input type="checkbox" id="compactMargins" data-action="setUiSettings" />
           <span class="slider"></span>
         </label>
       </div>
@@ -58,7 +58,7 @@
       <div class="row">
         <label for="staticCommentBox">Static comment box</label>
         <label class="switch">
-          <input type="checkbox" id="staticCommentBox" />
+          <input type="checkbox" id="staticCommentBox" data-action="setLayoutSettings" />
           <span class="slider"></span>
         </label>
       </div>
@@ -67,11 +67,11 @@
         <label class="scrollbar-label">Hide scrollbar</label>
         <div class="scrollbar-options">
           <label class="checkbox-label">
-            <input type="checkbox" id="innerScrollbar" />
+            <input type="checkbox" id="innerScrollbar" data-action="setUiSettings" />
             <span>Inner</span>
           </label>
           <label class="checkbox-label">
-            <input type="checkbox" id="outerScrollbar" />
+            <input type="checkbox" id="outerScrollbar" data-action="setUiSettings" />
             <span>Outer</span>
           </label>
         </div>
@@ -86,12 +86,12 @@
           <span id="commentsWidthValue"></span>
         </div>
       </div>
-      <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" />
+      <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" data-action="setUiSettings" />
 
       <div class="row">
         <label for="hideSideMargins">Hide side margins</label>
         <label class="switch">
-          <input type="checkbox" id="hideSideMargins" />
+          <input type="checkbox" id="hideSideMargins" data-action="setUiSettings" />
           <span class="slider"></span>
         </label>
       </div>

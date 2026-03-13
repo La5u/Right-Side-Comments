@@ -15,6 +15,10 @@ label { font-size: 14px; }
 input:checked + .slider { background: #2563eb; }
 input:checked + .slider:before { transform: translateX(18px); }
 
+.row.dimmer { opacity: 0.4; }
+.row.dimmer .slider { background: #444; }
+.row.dimmer label { cursor: not-allowed; }
+
 /* Theme toggle */
 .theme-toggle { position: absolute; top: 4px; right: 4px; border: 0; background: 0; cursor: pointer; opacity: 0.8; padding: 4px; }
 .theme-toggle:hover { opacity: 1; }
@@ -37,6 +41,8 @@ input:checked + .slider:before { transform: translateX(18px); }
 .slider-container span { font-size: 14px; min-width: 35px; }
 .width-slider { width: 100%; margin-top: 4px; height: 4px; appearance: none; background: #555; border-radius: 2px; }
 .width-slider::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: #2563eb; border-radius: 50%; cursor: pointer; }
+.width-slider.dimmer { opacity: 0.4; pointer-events: none; }
+.row.dimmer .width-slider { opacity: 0.4; pointer-events: none; }
 
 /* Light theme */
 :root[data-theme="light"] body { background: #f5f5f5; color: #333; }
@@ -45,3 +51,5 @@ input:checked + .slider:before { transform: translateX(18px); }
 :root[data-theme="light"] input:checked + .slider { background: #3b82f6; }
 :root[data-theme="light"] .width-slider { background: #ccc; }
 :root[data-theme="light"] .width-slider::-webkit-slider-thumb { background: #3b82f6; }
+:root[data-theme="light"] .row.dimmer .slider { background: #bbb; }
+:root[data-theme="light"] .width-slider.dimmer, :root[data-theme="light"] .row.dimmer .width-slider { opacity: 0.4; }
