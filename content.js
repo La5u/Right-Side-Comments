@@ -23,6 +23,11 @@ const supportedVideoPage = () => {
 };
 
 let activeToggleController = null;
+let cachedSettings = { ...DEFAULT_SETTINGS };
+
+async function syncSettings() {
+  cachedSettings = withDefaults(await chrome.storage.local.get(SETTINGS_KEYS));
+}
 
 function waitFor(target, { signal } = {}) {
   return new Promise((resolve) => {
@@ -172,32 +177,36 @@ async function applyDescriptionBehavior(sidebarEnabled, autoExpand) {
 async function applyFromStorage() {
   if (!supportedVideoPage()) return;
 
-  const settings = await getSettings();
-  applyUiSettings(settings);
+  await syncSettings();
+  applyUiSettings(cachedSettings);
 
-  const applied = await toggleSidebar(settings.sidebarEnabled, settings);
-  if (applied) await applyDescriptionBehavior(settings.sidebarEnabled, settings.autoExpand);
+  const applied = await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings);
+  if (applied) await applyDescriptionBehavior(cachedSettings.sidebarEnabled, cachedSettings.autoExpand);
 }
 
 applyFromStorage();
 window.addEventListener("yt-navigate-start", applyFromStorage);
 
+// Keep cachedSettings in sync with storage
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+  for (const key of SETTINGS_KEYS) {
+    if (key in changes) {
+      cachedSettings[key] = changes[key].newValue ?? DEFAULT_SETTINGS[key];
+    }
+  }
+});
+
 const messageHandlers = {
   async toggleCommentsSidebar() { await applyFromStorage(); },
-  async setAutoExpand(settings) { await applyDescriptionBehavior(settings.sidebarEnabled, settings.autoExpand); },
-  async setShowRelated(settings) { await toggleSidebar(settings.sidebarEnabled, settings); },
-  async setUiSettings() {
-    const settings = await getSettings();
-    applyUiSettings(settings);
-  },
-async setLayoutSettings() {
-  const settings = await getSettings();
-  await toggleSidebar(settings.sidebarEnabled, settings);
-},
+  async setAutoExpand() { await applyDescriptionBehavior(cachedSettings.sidebarEnabled, cachedSettings.autoExpand); },
+  async setShowRelated() { await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings); },
+  async setUiSettings() { applyUiSettings(cachedSettings); },
+  async setLayoutSettings() { await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings); },
 };
 
-chrome.runtime.onMessage.addListener(async ({ action, ...values }) => {
+chrome.runtime.onMessage.addListener(async ({ action }) => {
   const handler = messageHandlers[action];
   if (!handler) return;
-  await handler(withDefaults(values));
+  await handler();
 });

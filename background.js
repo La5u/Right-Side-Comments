@@ -1,3 +1,16 @@
+// Default settings - must match DEFAULTS in popup.js and DEFAULT_SETTINGS in content.js
+const DEFAULTS = {
+  sidebarEnabled: true,
+  autoExpand: true,
+  showRelated: true,
+  innerScrollbar: true,
+  outerScrollbar: false,
+  compactMargins: true,
+  staticCommentBox: true,
+  commentsWidth: null,
+  hideSideMargins: false,
+};
+
 function getActionIconPath(enabled) {
   const sizes = [16, 32, 48, 96, 128];
   const suffix = enabled ? "" : "off";
@@ -9,28 +22,13 @@ function getActionIconPath(enabled) {
 
 async function syncActionIconFromStorage() {
   const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
-  const enabled = sidebarEnabled !== false;
-  chrome.action.setIcon({ path: getActionIconPath(enabled) });
+  chrome.action.setIcon({ path: getActionIconPath(sidebarEnabled ?? true) });
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
-  // Keep user settings on updates; only seed defaults on first install.
   if (details.reason === "install") {
-    // Default settings - must match DEFAULT_SETTINGS in content.js
-    chrome.storage.local.set({
-    sidebarEnabled: true,
-    autoExpand: true,
-    showRelated: true,
-    innerScrollbar: true,
-    outerScrollbar: false,
-    compactMargins: true,
-    staticCommentBox: true,
-    commentsWidth: null,
-    hideSideMargins: false,
-  });
-    chrome.tabs.create({
-      url: "https://lasu.dev/right-side-comments",
-    });
+    chrome.storage.local.set(DEFAULTS);
+    chrome.tabs.create({ url: "https://lasu.dev/right-side-comments" });
   }
   syncActionIconFromStorage();
 });
@@ -39,8 +37,7 @@ chrome.runtime.onStartup.addListener(syncActionIconFromStorage);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local" || !changes.sidebarEnabled) return;
-  const enabled = changes.sidebarEnabled.newValue !== false;
-  chrome.action.setIcon({ path: getActionIconPath(enabled) });
+  chrome.action.setIcon({ path: getActionIconPath(changes.sidebarEnabled.newValue) });
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
@@ -50,12 +47,8 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (!tab?.id) return;
 
   const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
-  const currentState = sidebarEnabled !== false;
-  const newState = !currentState;
+  const newState = !(sidebarEnabled ?? true);
   await chrome.storage.local.set({ sidebarEnabled: newState });
 
-  // Send toggle message to content script
-  await chrome.tabs.sendMessage(tab.id, {
-    action: "toggleCommentsSidebar",
-  }).catch(() => {});
+  await chrome.tabs.sendMessage(tab.id, { action: "toggleCommentsSidebar" }).catch(() => {});
 });
