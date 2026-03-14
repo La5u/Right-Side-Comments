@@ -7,23 +7,34 @@ Move YouTube comments to the right sidebar on watch pages.
 - Firefox: https://addons.mozilla.org/en-US/firefox/addon/right-side-comments/
 - GitHub: https://github.com/La5u/Right-Side-Comments
 
-## Toggles
+## Behavior
 
-- `Sidebar`: turn right-side comments on/off.
+- `Sidebar`: turn right-side comments on/off (Ctrl+Shift+Y).
 - `Expand description`: expand when sidebar mode is enabled; collapse when disabled (intentional).
-- `Show recommended`: show or hide related videos.
-- `Show scrollbar`: show/hide the comments scrollbar.
+- `Related videos`: show or hide related videos.
+
+## UI
+
 - `Compact comments`: tighter comment spacing.
-- `Persistent comment box`: keep a fixed comments container in sidebar mode to reduce layout shifts.
+- `Static comment box`: keeps a fixed container in place while comments load, preventing UI layout shifts.
+- `Hide scrollbar`: hide scrollbars on the comments area. Supports inner (comments section) and outer (entire sidebar) scrollbars separately.
+
+## Experimental
+
+- `Comments width`: adjust the width of the comments sidebar (15-40%).
+- `Hide side margins`: remove spacing on the left and right sides of the video.
 
 ## Defaults
 
 - `sidebarEnabled: true`
 - `autoExpand: true`
 - `showRelated: true`
-- `showScrollbar: false`
+- `innerScrollbar: true`
+- `outerScrollbar: false`
 - `compactMargins: true`
-- `persistentCommentBox: true`
+- `staticCommentBox: true`
+- `commentsWidth: null`
+- `hideSideMargins: false`
 
 ## Shortcut
 
