@@ -19,10 +19,14 @@ Move YouTube comments to the right sidebar on watch pages.
 - `Static comment box`: keeps a fixed container in place while comments load, preventing UI layout shifts.
 - `Hide scrollbar`: hide scrollbars on the comments area. Supports inner (comments section) and outer (entire sidebar) scrollbars separately.
 
-## Experimental
+## Experiments
 
 - `Comments width`: adjust the width of the comments sidebar (15-40%).
 - `Hide side margins`: remove spacing on the left and right sides of the video.
+
+## Known Issues
+
+- Video size does not update when adjusting `Comments width` live. It updates after a page reload or toggling fullscreen.
 
 ## Defaults
 
