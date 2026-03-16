@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Right Side Comments",
-  "version": "2.9.1",
+  "version": "2.9.2",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
   "homepage_url": "https://lasu.dev/right-side-comments",
   "permissions": ["storage"],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["defaults.js", "background.js"]
   },
 
   "action": {
@@ -38,7 +38,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content.js"],
+      "js": ["defaults.js", "content.js"],
       "css": ["style.css"],
       "run_at": "document_start"
     }
