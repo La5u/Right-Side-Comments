@@ -8,7 +8,7 @@ const versionLabel = document.getElementById("versionLabel");
 let currentThemeOverride = null;
 
 // Collapsible sections
-const defaults = { behavior: true, ui: true, experimental: false };
+const defaults = { behavior: true, ui: true, experiments: false };
 let state = JSON.parse(localStorage.getItem("rsc-sections"));
 if (!state) state = { ...defaults };
 
@@ -40,31 +40,14 @@ document.querySelectorAll(".section-title").forEach(title => {
   });
 });
 // Default values matching content.js DEFAULT_SETTINGS
-const DEFAULTS = {
-  sidebarEnabled: true,
-  autoExpand: true,
-  showRelated: true,
-  innerScrollbar: true,
-  outerScrollbar: false,
-  compactMargins: true,
-  staticCommentBox: true,
-  commentsWidth: null,
-  hideSideMargins: false,
-};
+const DEFAULTS = self.RSC_DEFAULTS;
 
-const STORAGE_KEYS = Object.keys(DEFAULTS).concat("themeOverride");
+const STORAGE_KEYS = Object.keys(DEFAULTS);
 
 // Sub-controls to dim when sidebar is off
-const SUB_CONTROLS = [
-  "autoExpand",
-  "showRelated",
-  "compactMargins",
-  "staticCommentBox",
-  "hideSideMargins",
-  "innerScrollbar",
-  "outerScrollbar",
-  "commentsWidth",
-];
+const SUB_CONTROLS = Object.keys(DEFAULTS).filter(
+  (key) => key !== "sidebarEnabled" && key !== "themeOverride",
+);
 
 function getSystemTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -75,10 +58,11 @@ function applyTheme(theme) {
 }
 
 function applyThemeWithOverride() {
-  const theme = currentThemeOverride === "dark" || currentThemeOverride === "light" 
-    ? currentThemeOverride 
-    : getSystemTheme();
-  applyTheme(theme);
+  if (currentThemeOverride === "dark" || currentThemeOverride === "light") {
+    applyTheme(currentThemeOverride);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
 }
 
 function setSubEnabled(mainOn) {
@@ -117,19 +101,20 @@ chrome.storage.local.get(STORAGE_KEYS, (d) => {
   
   for (const id of SUB_CONTROLS) {
     const el = document.getElementById(id);
-    if (!el || el.tagName === "INPUT" && el.type !== "checkbox") continue;
+    if (!el) continue;
     if (id === "commentsWidth") {
       const val = d.commentsWidth ?? DEFAULTS.commentsWidth;
       if (val != null) {
         el.value = val;
         commentsWidthValue.textContent = `${val}%`;
       } else {
-        el.value = 27;
-        commentsWidthValue.textContent = "";
+        el.value = "";
+        commentsWidthValue.textContent = "Auto";
       }
-    } else {
-      el.checked = d[id] ?? DEFAULTS[id];
+      continue;
     }
+    if (el.tagName === "INPUT" && el.type !== "checkbox") continue;
+    el.checked = d[id] ?? DEFAULTS[id];
   }
 
   applyThemeWithOverride();
@@ -139,9 +124,6 @@ updateShortcutLabel();
 
 const version = chrome.runtime.getManifest().version;
 versionLabel.textContent = `v${version}`;
-
-const mediaTheme = window.matchMedia("(prefers-color-scheme: dark)");
-mediaTheme.addEventListener("change", applyThemeWithOverride);
 
 themeToggle.addEventListener("click", async () => {
   const currentTheme = currentThemeOverride === "dark" || currentThemeOverride === "light" 
@@ -167,6 +149,9 @@ for (const id of SUB_CONTROLS) {
   const eventType = el.type === "range" ? "input" : "change";
   el.addEventListener(eventType, async (e) => {
     const value = el.type === "range" ? parseInt(e.target.value) : e.target.checked;
+    if (id === "commentsWidth") {
+      commentsWidthValue.textContent = `${value}%`;
+    }
     await chrome.storage.local.set({ [id]: value });
     if (action) await sendToActiveTab({ action });
   });
@@ -180,8 +165,8 @@ resetBtn.addEventListener("click", async () => {
     const el = document.getElementById(id);
     if (!el) continue;
     if (id === "commentsWidth") {
-      el.value = 27;
-      commentsWidthValue.textContent = "";
+      el.value = "";
+      commentsWidthValue.textContent = "Auto";
     } else {
       el.checked = DEFAULTS[id];
     }
@@ -210,8 +195,8 @@ chrome.storage.onChanged.addListener((changes) => {
       commentsWidth.value = val;
       commentsWidthValue.textContent = `${val}%`;
     } else {
-      commentsWidth.value = 27;
-      commentsWidthValue.textContent = "";
+      commentsWidth.value = "";
+      commentsWidthValue.textContent = "Auto";
     }
   }
 

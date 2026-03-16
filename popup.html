@@ -7,18 +7,19 @@
 </head>
 <body>
   <div class="popup">
-    <button
-      id="themeToggle"
-      class="theme-toggle"
-      type="button"
-      aria-label="Toggle theme"
-      title="Toggle light/dark theme"
-    >
-      <img class="theme-icon theme-icon-sun" src="assets/theme-sun.svg" alt="" aria-hidden="true" />
-      <img class="theme-icon theme-icon-moon" src="assets/theme-moon.svg" alt="" aria-hidden="true" />
-    </button>
-
-    <div class="section-title" data-toggle="behavior">Behavior ▾</div>
+    <div class="section-header">
+      <div class="section-title" data-toggle="behavior">Behavior ▾</div>
+      <button
+        id="themeToggle"
+        class="theme-toggle"
+        type="button"
+        aria-label="Toggle theme"
+        title="Toggle light/dark theme"
+      >
+        <img class="theme-icon theme-icon-sun" src="assets/theme-sun.svg" alt="" aria-hidden="true" />
+        <img class="theme-icon theme-icon-moon" src="assets/theme-moon.svg" alt="" aria-hidden="true" />
+      </button>
+    </div>
     <div class="section-content" id="behavior">
       <div class="row">
         <label for="toggle" id="toggleLabel">Sidebar (Ctrl+Shift+Y)</label>
@@ -78,12 +79,12 @@
       </div>
     </div>
 
-    <div class="section-title" data-toggle="experimental">Experimental ▸</div>
-    <div class="section-content" id="experimental">
+    <div class="section-title" data-toggle="experiments">Experiments ▸</div>
+    <div class="section-content" id="experiments">
       <div class="row">
         <label>Comments width</label>
         <div class="slider-container">
-          <span id="commentsWidthValue"></span>
+          <span id="commentsWidthValue">Auto</span>
         </div>
       </div>
       <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" data-action="setUiSettings" />
@@ -106,6 +107,7 @@
       </div>
     </div>
   </div>
+  <script src="defaults.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
