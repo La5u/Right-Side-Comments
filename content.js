@@ -1,16 +1,5 @@
 const qs = (s, root = document) => root?.querySelector(s) || null;
-// Default settings - canonical source of truth for all settings
-const DEFAULT_SETTINGS = {
-  sidebarEnabled: true,
-  autoExpand: true,
-  showRelated: true,
-  innerScrollbar: true,
-  outerScrollbar: false,
-  compactMargins: true,
-  staticCommentBox: true,
-  commentsWidth: null,
-  hideSideMargins: false,
-};
+const DEFAULT_SETTINGS = self.RSC_DEFAULTS;
 const SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS);
 const withDefaults = (values = {}) =>
   Object.fromEntries(SETTINGS_KEYS.map((key) => [key, values[key] ?? DEFAULT_SETTINGS[key]]));
@@ -150,7 +139,7 @@ function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, comme
   root.classList.toggle("rsc-compact-margins", compactMargins);
   root.classList.toggle("rsc-hide-side-margins", hideSideMargins);
   
-  // Only apply width if user has explicitly set it (experimental feature)
+  // Only apply width if user has explicitly set it (experiments feature)
   if (commentsWidth != null && commentsWidth !== "") {
     root.style.setProperty("--comments-width", `${commentsWidth}%`);
     root.classList.add("rsc-custom-width");
