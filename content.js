@@ -13,6 +13,7 @@ const supportedVideoPage = () => {
 
 let activeToggleController = null;
 let cachedSettings = { ...DEFAULT_SETTINGS };
+let resizeRafId = 0;
 
 async function syncSettings() {
   cachedSettings = withDefaults(await chrome.storage.local.get(SETTINGS_KEYS));
@@ -72,6 +73,45 @@ function resetCommentStyles(comments) {
   Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
+function applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}, sec, comments, related) {
+  if (!sec || !comments) return false;
+
+  const shell = qs(`#${COMMENTS_SHELL_ID}`, sec);
+  setRelatedDisplay(related, sidebarEnabled, showRelated);
+  document.documentElement.classList.toggle("rsc-comments-sidebar-active", sidebarEnabled);
+
+  if (sidebarEnabled) {
+    // Fixes YouTube reordering comments/related videos when the watch page crosses a resize breakpoint.
+    const useStaticBox = isStatic !== false;
+    if (!useStaticBox) {
+      Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
+      if (showRelated && related?.parentNode === sec) {
+        sec.insertBefore(comments, related);
+      } else {
+        sec.append(comments);
+      }
+
+      if (showRelated && related?.parentNode !== sec) sec.append(related);
+      shell?.remove();
+      return true;
+    }
+
+    // Fixes the same responsive reorder while preserving the persistent shell container.
+    const ensuredShell = ensureCommentsShell(sec);
+    resetCommentStyles(comments);
+    if (comments.parentNode !== ensuredShell) ensuredShell?.append(comments);
+
+    if (showRelated && related?.parentNode === sec) sec.insertBefore(ensuredShell, related);
+    else if (!sec.contains(ensuredShell)) sec.append(ensuredShell);
+    if (showRelated && related?.parentNode !== sec) sec.append(related);
+    return true;
+  }
+
+  // Restore the default YouTube layout.
+  resetCommentStyles(comments);
+  return false;
+}
+
 async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}) {
   if (!supportedVideoPage()) return;
 
@@ -86,40 +126,13 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
   if (signal.aborted || !sec) return false;
 
   const related = qs("#related");
-  const shell = qs(`#${COMMENTS_SHELL_ID}`, sec);
   if (!comments) {
-    shell?.remove();
+    qs(`#${COMMENTS_SHELL_ID}`, sec)?.remove();
     return false;
   }
 
-  setRelatedDisplay(related, sidebarEnabled, showRelated);
-  document.documentElement.classList.toggle("rsc-comments-sidebar-active", sidebarEnabled);
-
   if (sidebarEnabled) {
-    // Sidebar mode without a shell: comments become the scroll container.
-    const useStaticBox = isStatic !== false;
-    if (!useStaticBox) {
-      Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
-    if (showRelated && related?.parentNode === sec) {
-      sec.insertBefore(comments, related);
-    } else {
-      sec.append(comments);
-    }
-
-    if (showRelated && related?.parentNode !== sec) sec.append(related);
-      shell?.remove();
-      return true;
-    }
-
-    // Sidebar mode with a persistent shell: the shell scrolls, comments stay unbounded.
-    const ensuredShell = ensureCommentsShell(sec);
-    resetCommentStyles(comments);
-    if (comments.parentNode !== ensuredShell) ensuredShell?.append(comments);
-
-    if (showRelated && related?.parentNode === sec) sec.insertBefore(ensuredShell, related);
-    else if (!sec.contains(ensuredShell)) sec.append(ensuredShell);
-    if (showRelated && related?.parentNode !== sec) sec.append(related);
-    return true;
+    return applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic }, sec, comments, related);
   }
 
   // Restore the default YouTube layout.
@@ -127,7 +140,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
   const below = await waitFor("#below", { signal });
   if (signal.aborted || !below) return false;
   below.append(comments);
-  shell?.remove();
+  qs(`#${COMMENTS_SHELL_ID}`, sec)?.remove();
   return true;
 }
 
@@ -173,8 +186,21 @@ async function applyFromStorage() {
   if (applied) await applyDescriptionBehavior(cachedSettings.sidebarEnabled, cachedSettings.autoExpand);
 }
 
+function scheduleSidebarReflow() {
+  if (resizeRafId) cancelAnimationFrame(resizeRafId);
+  resizeRafId = requestAnimationFrame(() => {
+    resizeRafId = 0;
+    if (!supportedVideoPage() || !cachedSettings.sidebarEnabled) return;
+    const sec = qs("div#secondary.ytd-watch-flexy");
+    const comments = qs("ytd-comments#comments");
+    const related = qs("#related");
+    applySidebarOrder(cachedSettings.sidebarEnabled, cachedSettings, sec, comments, related);
+  });
+}
+
 applyFromStorage();
 window.addEventListener("yt-navigate-start", applyFromStorage);
+window.addEventListener("resize", scheduleSidebarReflow);
 
 // Keep cachedSettings in sync with storage
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -192,6 +218,10 @@ const messageHandlers = {
   async setShowRelated() { await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings); },
   async setUiSettings() { applyUiSettings(cachedSettings); },
   async setLayoutSettings() { await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings); },
+  async refreshLayout() {
+    // Nudge YouTube to recalculate the player layout after a committed sidebar width change.
+    window.dispatchEvent(new Event("resize"));
+  },
 };
 
 chrome.runtime.onMessage.addListener(async ({ action }) => {

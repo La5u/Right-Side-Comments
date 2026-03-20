@@ -146,12 +146,25 @@ for (const id of SUB_CONTROLS) {
   const el = document.getElementById(id);
   if (!el) continue;
   const action = el.dataset.action;
-  const eventType = el.type === "range" ? "input" : "change";
-  el.addEventListener(eventType, async (e) => {
-    const value = el.type === "range" ? parseInt(e.target.value) : e.target.checked;
-    if (id === "commentsWidth") {
+  if (el.type === "range") {
+    el.addEventListener("input", async (e) => {
+      const value = parseInt(e.target.value);
       commentsWidthValue.textContent = `${value}%`;
-    }
+      await chrome.storage.local.set({ [id]: value });
+      if (action) await sendToActiveTab({ action });
+    });
+
+    el.addEventListener("change", async (e) => {
+      const value = parseInt(e.target.value);
+      commentsWidthValue.textContent = `${value}%`;
+      await chrome.storage.local.set({ [id]: value });
+      await sendToActiveTab({ action: "refreshLayout" });
+    });
+    continue;
+  }
+
+  el.addEventListener("change", async (e) => {
+    const value = e.target.checked;
     await chrome.storage.local.set({ [id]: value });
     if (action) await sendToActiveTab({ action });
   });
