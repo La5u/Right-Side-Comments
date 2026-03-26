@@ -43,8 +43,7 @@ html.rsc-hide-outer-scrollbar::-webkit-scrollbar {
 }
 
 /* Comments width - only when user has set it */
-html.rsc-comments-sidebar-active.rsc-custom-width #secondary.ytd-watch-flexy {
+html.rsc-custom-width #secondary.ytd-watch-flexy {
   width: var(--comments-width) !important;
   flex: 0 0 var(--comments-width) !important;
 }
-
