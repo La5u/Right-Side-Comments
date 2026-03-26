@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Right Side Comments",
-  "version": "2.9.3",
+  "version": "2.10.0",
   "description": "Toggle YouTube comments on the right side instead of recommendations.",
   "homepage_url": "https://lasu.dev/right-side-comments",
   "permissions": ["storage"],
@@ -32,7 +32,7 @@
         "mac": "Command+Shift+Y",
         "linux": "Ctrl+Shift+U"
       },
-      "description": "Toggle sidebar"
+      "description": "Toggle extension"
     }
   },
   "content_scripts": [
