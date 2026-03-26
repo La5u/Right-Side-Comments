@@ -5,6 +5,8 @@ const withDefaults = (values = {}) =>
   Object.fromEntries(SETTINGS_KEYS.map((key) => [key, values[key] ?? DEFAULT_SETTINGS[key]]));
 const COMMENTS_SHELL_ID = "rsc-comments-shell";
 const COMMENTS_MAX_HEIGHT = "calc(100vh - 75px)";
+const BUILTIN_COMMENT_BUTTON_SELECTOR = ".ytp-fullscreen-quick-actions button[aria-label='Comments']";
+const BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR = "#panels button[aria-label='Close']";
 
 const supportedVideoPage = () => {
   const pathname = location.pathname || "";
@@ -19,11 +21,13 @@ async function syncSettings() {
   cachedSettings = withDefaults(await chrome.storage.local.get(SETTINGS_KEYS));
 }
 
-function waitFor(target, { signal } = {}) {
+function waitFor(target, { signal, root = document.body } = {}) {
+  if (!root) return Promise.resolve(null);
+
   return new Promise((resolve) => {
     if (signal?.aborted) return resolve(null);
 
-    const get = typeof target === "function" ? target : () => qs(target);
+    const get = typeof target === "function" ? target : () => qs(target, root);
     let observer = null;
     let settled = false;
     const done = (value) => {
@@ -44,16 +48,12 @@ function waitFor(target, { signal } = {}) {
     });
 
     signal?.addEventListener("abort", onAbort, { once: true });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    observer.observe(root, { childList: true, subtree: true });
   });
 }
 
-async function getSettings() {
-  return withDefaults(await chrome.storage.local.get(SETTINGS_KEYS));
-}
-
-function setRelatedDisplay(rel, sidebarEnabled, showRelated) {
-  if (rel) rel.style.display = sidebarEnabled && !showRelated ? "none" : "";
+function setRelatedDisplay(rel, showRelated) {
+  if (rel) rel.style.display = showRelated ? "" : "none";
 }
 
 function ensureCommentsShell(sec) {
@@ -73,12 +73,23 @@ function resetCommentStyles(comments) {
   Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
+async function setBuiltinCommentPanel(enabled) {
+  const watch = await waitFor("ytd-watch-flexy");
+  const player = watch ? await waitFor("#movie_player", { root: watch }) : null;
+  const button = player ? await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR, { root: player }) : null;
+  if (button) {
+    if ((button.getAttribute("aria-pressed") === "true") !== enabled) button.click();
+    return true;
+  }
+  if (!enabled) qs(BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR, watch || document)?.click();
+  return false;
+}
+
 function applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}, sec, comments, related) {
   if (!sec || !comments) return false;
 
   const shell = qs(`#${COMMENTS_SHELL_ID}`, sec);
-  setRelatedDisplay(related, sidebarEnabled, showRelated);
-  document.documentElement.classList.toggle("rsc-comments-sidebar-active", sidebarEnabled);
+  setRelatedDisplay(related, showRelated);
 
   if (sidebarEnabled) {
     // Fixes YouTube reordering comments/related videos when the watch page crosses a resize breakpoint.
@@ -144,26 +155,30 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
   return true;
 }
 
-function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }) {
+function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }, sidebarMode) {
   const root = document.documentElement;
   if (!root) return;
-  root.classList.toggle("rsc-hide-inner-scrollbar", innerScrollbar);
+  const isDefaultSidebar = sidebarMode === "default";
+  const nextWidth = sidebarMode !== "disabled" && commentsWidth != null && commentsWidth !== "" ? `${commentsWidth}%` : "";
+  const nextHideSideMargins = isDefaultSidebar && Boolean(hideSideMargins);
+
+  root.classList.toggle("rsc-compact-margins", isDefaultSidebar && compactMargins);
+  root.classList.toggle("rsc-hide-inner-scrollbar", isDefaultSidebar && innerScrollbar);
   root.classList.toggle("rsc-hide-outer-scrollbar", outerScrollbar);
-  root.classList.toggle("rsc-compact-margins", compactMargins);
-  root.classList.toggle("rsc-hide-side-margins", hideSideMargins);
-  
-  // Only apply width if user has explicitly set it (experiments feature)
-  if (commentsWidth != null && commentsWidth !== "") {
-    root.style.setProperty("--comments-width", `${commentsWidth}%`);
-    root.classList.add("rsc-custom-width");
+  root.classList.toggle("rsc-hide-side-margins", nextHideSideMargins);
+  root.classList.toggle("rsc-custom-width", Boolean(nextWidth));
+
+  if (nextWidth) {
+    root.style.setProperty("--comments-width", nextWidth);
   } else {
     root.style.removeProperty("--comments-width");
-    root.classList.remove("rsc-custom-width");
   }
+
+  window.dispatchEvent(new Event("resize"));
 }
 
-async function applyDescriptionBehavior(sidebarEnabled, autoExpand) {
-  if (sidebarEnabled && autoExpand) {
+async function applyDescriptionBehavior(autoExpand) {
+  if (autoExpand) {
     const readyBtn = await waitFor(() => {
       const btn = qs("#description-inline-expander #expand");
       if (!btn) return null;
@@ -176,30 +191,65 @@ async function applyDescriptionBehavior(sidebarEnabled, autoExpand) {
   qs("#description-inline-expander tp-yt-paper-button#collapse")?.click();
 }
 
+async function applyBuiltinSidebar(enabled) {
+  await toggleSidebar(false, cachedSettings);
+  await waitFor("ytd-watch-flexy");
+  await waitFor("div#secondary.ytd-watch-flexy");
+  if (enabled) {
+    await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  await setBuiltinCommentPanel(enabled);
+}
+
 async function applyFromStorage() {
   if (!supportedVideoPage()) return;
 
   await syncSettings();
-  applyUiSettings(cachedSettings);
+  const related = qs("#related");
 
-  const applied = await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings);
-  if (applied) await applyDescriptionBehavior(cachedSettings.sidebarEnabled, cachedSettings.autoExpand);
+  if (!cachedSettings.extensionEnabled) {
+    const root = document.documentElement;
+    root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
+    root?.style.removeProperty("--comments-width");
+    setRelatedDisplay(related, true);
+    await toggleSidebar(false, cachedSettings);
+    await setBuiltinCommentPanel(false);
+    await applyDescriptionBehavior(false);
+    return;
+  }
+
+  setRelatedDisplay(related, cachedSettings.showRelated);
+  applyUiSettings(cachedSettings, cachedSettings.sidebarMode);
+
+  if (document.fullscreenElement) {
+    await applyBuiltinSidebar(cachedSettings.fullscreenComments);
+  } else if (cachedSettings.sidebarMode === "builtin") {
+    await applyBuiltinSidebar(true);
+  } else {
+    await setBuiltinCommentPanel(false);
+    await toggleSidebar(cachedSettings.sidebarMode === "default", cachedSettings);
+  }
+
+  await applyDescriptionBehavior(cachedSettings.autoExpand);
 }
 
 function scheduleSidebarReflow() {
   if (resizeRafId) cancelAnimationFrame(resizeRafId);
   resizeRafId = requestAnimationFrame(() => {
     resizeRafId = 0;
-    if (!supportedVideoPage() || !cachedSettings.sidebarEnabled) return;
+    if (!supportedVideoPage() || !cachedSettings.extensionEnabled || cachedSettings.sidebarMode !== "default" || document.fullscreenElement) return;
     const sec = qs("div#secondary.ytd-watch-flexy");
     const comments = qs("ytd-comments#comments");
     const related = qs("#related");
-    applySidebarOrder(cachedSettings.sidebarEnabled, cachedSettings, sec, comments, related);
+    applySidebarOrder(true, cachedSettings, sec, comments, related);
   });
 }
 
 applyFromStorage();
-window.addEventListener("yt-navigate-start", applyFromStorage);
+window.addEventListener("yt-navigate-finish", applyFromStorage);
+window.addEventListener("yt-page-data-fetched", applyFromStorage);
+document.addEventListener("fullscreenchange", applyFromStorage);
 window.addEventListener("resize", scheduleSidebarReflow);
 
 // Keep cachedSettings in sync with storage
@@ -210,22 +260,43 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       cachedSettings[key] = changes[key].newValue ?? DEFAULT_SETTINGS[key];
     }
   }
+  if (supportedVideoPage() && !document.fullscreenElement) {
+    applyFromStorage();
+  }
 });
 
 const messageHandlers = {
-  async toggleCommentsSidebar() { await applyFromStorage(); },
-  async setAutoExpand() { await applyDescriptionBehavior(cachedSettings.sidebarEnabled, cachedSettings.autoExpand); },
-  async setShowRelated() { await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings); },
-  async setUiSettings() { applyUiSettings(cachedSettings); },
-  async setLayoutSettings() { await toggleSidebar(cachedSettings.sidebarEnabled, cachedSettings); },
-  async refreshLayout() {
-    // Nudge YouTube to recalculate the player layout after a committed sidebar width change.
-    window.dispatchEvent(new Event("resize"));
+  async setAutoExpand({ value } = {}) {
+    await applyDescriptionBehavior(value ?? cachedSettings.autoExpand);
   },
+  async setShowRelated() {
+    if (!cachedSettings.extensionEnabled) {
+      setRelatedDisplay(qs("#related"), true);
+      return;
+    }
+    if (cachedSettings.sidebarMode === "default" && !document.fullscreenElement) {
+      await toggleSidebar(true, cachedSettings);
+      return;
+    }
+    setRelatedDisplay(qs("#related"), cachedSettings.showRelated);
+  },
+  async setUiSettings({ commentsWidth } = {}) {
+    if (!cachedSettings.extensionEnabled) {
+      const root = document.documentElement;
+      root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
+      root?.style.removeProperty("--comments-width");
+      return;
+    }
+    applyUiSettings(
+      { ...cachedSettings, commentsWidth: commentsWidth === undefined ? cachedSettings.commentsWidth : commentsWidth },
+      cachedSettings.sidebarMode,
+    );
+  },
+  setLayoutSettings: applyFromStorage,
 };
 
-chrome.runtime.onMessage.addListener(async ({ action }) => {
-  const handler = messageHandlers[action];
+chrome.runtime.onMessage.addListener(async (message = {}) => {
+  const handler = messageHandlers[message.action];
   if (!handler) return;
-  await handler();
+  await handler(message);
 });
