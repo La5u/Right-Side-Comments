@@ -7,47 +7,74 @@
 </head>
 <body>
   <div class="popup">
-    <div class="section-header">
-      <div class="section-title" data-toggle="behavior">Behavior ▾</div>
-      <button
-        id="themeToggle"
-        class="theme-toggle"
-        type="button"
-        aria-label="Toggle theme"
-        title="Toggle light/dark theme"
-      >
-        <img class="theme-icon theme-icon-sun" src="assets/theme-sun.svg" alt="" aria-hidden="true" />
-        <img class="theme-icon theme-icon-moon" src="assets/theme-moon.svg" alt="" aria-hidden="true" />
-      </button>
-    </div>
-    <div class="section-content" id="behavior">
-      <div class="row">
-        <label for="toggle" id="toggleLabel">Sidebar (Ctrl+Shift+Y)</label>
-        <label class="switch">
-          <input type="checkbox" id="toggle" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="row">
-        <label for="autoExpand">Expand description</label>
-        <label class="switch">
-          <input type="checkbox" id="autoExpand" data-action="setAutoExpand" />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <div class="row">
-        <label for="showRelated">Related videos</label>
-        <label class="switch">
-          <input type="checkbox" id="showRelated" data-action="setShowRelated" />
-          <span class="slider"></span>
-        </label>
-      </div>
+    <div class="row master-row">
+      <label for="extensionToggle" id="extensionToggleLabel">Extension (Ctrl+Shift+Y)</label>
+      <label class="switch master-switch">
+        <input type="checkbox" id="extensionToggle" />
+        <span class="slider"></span>
+      </label>
     </div>
 
-    <div class="section-title" data-toggle="ui">UI ▾</div>
-    <div class="section-content" id="ui">
+    <div class="section-divider" aria-hidden="true"></div>
+
+    <div class="row">
+      <label for="sidebarMode">Sidebar</label>
+      <select id="sidebarMode" class="mode-select">
+        <option value="default">Default</option>
+        <option value="builtin">Built-in</option>
+        <option value="disabled">Disabled</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="autoExpand">Expand description</label>
+      <label class="switch">
+        <input type="checkbox" id="autoExpand" data-action="setAutoExpand" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row">
+      <label for="showRelated">Related videos</label>
+      <label class="switch">
+        <input type="checkbox" id="showRelated" data-action="setShowRelated" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row">
+      <label for="fullscreenComments">Fullscreen comments</label>
+      <label class="switch">
+        <input type="checkbox" id="fullscreenComments" data-action="setLayoutSettings" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row">
+      <label class="scrollbar-label">Hide scrollbar</label>
+      <div class="scrollbar-options">
+        <label class="checkbox-label">
+          <input type="checkbox" id="innerScrollbar" data-action="setUiSettings" />
+          <span>Inner</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="outerScrollbar" data-action="setUiSettings" />
+          <span>Outer</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section-title" data-toggle="advanced">Advanced ▸</div>
+    <div class="section-content" id="advanced">
+      <div class="row">
+        <label>Comments width</label>
+        <div class="slider-container">
+          <span id="commentsWidthValue">Auto</span>
+          <span id="commentsWidthReset" class="footer-link subtle-button">Reset</span>
+        </div>
+      </div>
+      <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" data-action="setUiSettings" />
+
       <div class="row">
         <label for="compactMargins">Compact comments</label>
         <label class="switch">
@@ -65,31 +92,6 @@
       </div>
 
       <div class="row">
-        <label class="scrollbar-label">Hide scrollbar</label>
-        <div class="scrollbar-options">
-          <label class="checkbox-label">
-            <input type="checkbox" id="innerScrollbar" data-action="setUiSettings" />
-            <span>Inner</span>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="outerScrollbar" data-action="setUiSettings" />
-            <span>Outer</span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-title" data-toggle="experiments">Experiments ▸</div>
-    <div class="section-content" id="experiments">
-      <div class="row">
-        <label>Comments width</label>
-        <div class="slider-container">
-          <span id="commentsWidthValue">Auto</span>
-        </div>
-      </div>
-      <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" data-action="setUiSettings" />
-
-      <div class="row">
         <label for="hideSideMargins">Hide side margins</label>
         <label class="switch">
           <input type="checkbox" id="hideSideMargins" data-action="setUiSettings" />
@@ -99,7 +101,19 @@
     </div>
 
     <div class="footer">
-      <div id="resetBtn" class="footer-link">Reset settings</div>
+      <div class="footer-top">
+        <div id="resetBtn" class="footer-link">Reset settings</div>
+        <button
+          id="themeToggle"
+          class="theme-toggle"
+          type="button"
+          aria-label="Toggle theme"
+          title="Toggle light/dark theme"
+        >
+          <img class="theme-icon theme-icon-sun" src="assets/theme-sun.svg" alt="" aria-hidden="true" />
+          <img class="theme-icon theme-icon-moon" src="assets/theme-moon.svg" alt="" aria-hidden="true" />
+        </button>
+      </div>
       <div class="footer-links">
         <a class="footer-link" href="https://github.com/La5u/Right-Side-Comments" target="_blank">GitHub</a>
         <a class="footer-link" href="https://lasu.dev/right-side-comments" target="_blank">Homepage</a>
