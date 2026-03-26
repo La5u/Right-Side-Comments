@@ -9,19 +9,21 @@ Move YouTube comments to the right sidebar on watch pages.
 
 ## Behavior
 
-- `Sidebar`: turn right-side comments on/off (Ctrl+Shift+Y).
-- `Expand description`: expand when sidebar mode is enabled; collapse when disabled (intentional).
+- `Extension`: turn the whole extension on/off (Ctrl+Shift+Y).
+- `Sidebar`: choose between the custom right-side comments layout, the built-in panel, or disabled.
+- `Expand description`: expand when the extension is enabled; collapse when disabled.
 - `Related videos`: show or hide related videos.
 
 ## UI
 
-- `Compact comments`: tighter comment spacing.
-- `Static comment box`: keeps a fixed container in place while comments load, preventing UI layout shifts.
+- `Fullscreen comments`: use YouTube's fullscreen comments button while fullscreen is active.
 - `Hide scrollbar`: hide scrollbars on the comments area. Supports inner (comments section) and outer (entire sidebar) scrollbars separately.
 
-## Experiments
+## Advanced
 
-- `Comments width`: adjust the width of the comments sidebar (15-40%).
+- `Comments width`: adjust the width of the comments area (15-40%) for both `Default` and `Built-in` sidebar modes, with a local reset control.
+- `Compact comments`: tighter comment spacing.
+- `Static comment box`: keeps a fixed container in place while comments load, preventing UI layout shifts.
 - `Hide side margins`: remove spacing on the left and right sides of the video.
 
 ## Known Issues
@@ -30,11 +32,13 @@ Move YouTube comments to the right sidebar on watch pages.
 
 ## Defaults
 
-- `sidebarEnabled: true`
+- `extensionEnabled: true`
+- `sidebarMode: "default"`
 - `autoExpand: true`
 - `showRelated: true`
 - `innerScrollbar: true`
 - `outerScrollbar: false`
+- `fullscreenComments: false`
 - `compactMargins: true`
 - `staticCommentBox: true`
 - `commentsWidth: null`
@@ -42,13 +46,11 @@ Move YouTube comments to the right sidebar on watch pages.
 
 ## Shortcut
 
-- Windows: `Ctrl+Shift+Y`
-- macOS: `Command+Shift+Y`
-- Linux: `Ctrl+Shift+U`
+- Windows: `Ctrl+Shift+Y` for the master extension toggle.
+- macOS: `Command+Shift+Y` for the master extension toggle.
+- Linux: `Ctrl+Shift+U` for the master extension toggle.
 
 ## Local Development
 
 1. Copy `manifest.firefox.json` or `manifest.chromium.json` to `manifest.json`.
 2. Load the project folder as an unpacked extension.
-
-Landing page files live in `docs/`.
