@@ -1,41 +1,36 @@
-const toggle = document.getElementById("toggle");
-const toggleLabel = document.getElementById("toggleLabel");
+const extensionToggle = document.getElementById("extensionToggle");
+const extensionToggleLabel = document.getElementById("extensionToggleLabel");
+const sidebarModeSelect = document.getElementById("sidebarMode");
 const commentsWidth = document.getElementById("commentsWidth");
 const commentsWidthValue = document.getElementById("commentsWidthValue");
+const commentsWidthReset = document.getElementById("commentsWidthReset");
 const resetBtn = document.getElementById("resetBtn");
 const themeToggle = document.getElementById("themeToggle");
 const versionLabel = document.getElementById("versionLabel");
 let currentThemeOverride = null;
+const COMMENTS_WIDTH_AUTO_LABEL = "Auto";
 
 // Collapsible sections
-const defaults = { behavior: true, ui: true, experiments: false };
+const defaults = { advanced: false };
 let state = JSON.parse(localStorage.getItem("rsc-sections"));
 if (!state) state = { ...defaults };
+
+function setSectionExpanded(title, content, isOpen) {
+  content.style.display = isOpen ? "flex" : "none";
+  title.textContent = title.textContent.replace(isOpen ? "▸" : "▾", isOpen ? "▾" : "▸");
+}
 
 document.querySelectorAll(".section-title").forEach(title => {
   const targetId = title.dataset.toggle;
   const content = document.getElementById(targetId);
   const isOpen = state[targetId] ?? defaults[targetId];
-  
-  if (!isOpen) {
-    content.style.display = "none";
-    title.textContent = title.textContent.replace("▾", "▸");
-  } else {
-    content.style.display = "flex";
-    title.textContent = title.textContent.replace("▸", "▾");
-  }
-  
+
+  setSectionExpanded(title, content, isOpen);
+
   title.addEventListener("click", () => {
     const currentlyHidden = content.style.display === "none";
-    if (currentlyHidden) {
-      content.style.display = "flex";
-      title.textContent = title.textContent.replace("▸", "▾");
-      state[targetId] = true;
-    } else {
-      content.style.display = "none";
-      title.textContent = title.textContent.replace("▾", "▸");
-      state[targetId] = false;
-    }
+    setSectionExpanded(title, content, currentlyHidden);
+    state[targetId] = currentlyHidden;
     localStorage.setItem("rsc-sections", JSON.stringify(state));
   });
 });
@@ -44,10 +39,28 @@ const DEFAULTS = self.RSC_DEFAULTS;
 
 const STORAGE_KEYS = Object.keys(DEFAULTS);
 
-// Sub-controls to dim when sidebar is off
+// Controls that become unavailable when the sidebar is off.
+const SIDEBAR_ONLY_CONTROLS = new Set([
+  "compactMargins",
+  "innerScrollbar",
+  "staticCommentBox",
+  "hideSideMargins",
+]);
+
+// Sub-controls to dim when the master extension is off.
 const SUB_CONTROLS = Object.keys(DEFAULTS).filter(
-  (key) => key !== "sidebarEnabled" && key !== "themeOverride",
+  (key) => key !== "extensionEnabled" && key !== "sidebarMode" && key !== "themeOverride",
 );
+
+function setSidebarMode(mode) {
+  if (sidebarModeSelect) sidebarModeSelect.value = mode;
+}
+
+function setCommentsWidthDisplay(value) {
+  const hasValue = value != null && value !== "";
+  commentsWidth.value = hasValue ? value : "";
+  commentsWidthValue.textContent = hasValue ? `${value}%` : COMMENTS_WIDTH_AUTO_LABEL;
+}
 
 function getSystemTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -65,15 +78,30 @@ function applyThemeWithOverride() {
   }
 }
 
-function setSubEnabled(mainOn) {
+function syncAvailabilityFromCurrentState() {
+  syncControlAvailability(
+    extensionToggle?.checked ?? DEFAULTS.extensionEnabled,
+    sidebarModeSelect?.value ?? DEFAULTS.sidebarMode,
+  );
+}
+
+function syncControlAvailability(extensionOn, sidebarMode) {
+  const sidebarRow = sidebarModeSelect?.closest(".row");
+  if (sidebarModeSelect) sidebarModeSelect.disabled = !extensionOn;
+  sidebarRow?.classList.toggle("dimmer", !extensionOn);
+  commentsWidthReset?.classList.toggle("dimmer", !extensionOn || sidebarMode === "disabled");
+  if (commentsWidthReset) commentsWidthReset.style.pointerEvents = !extensionOn || sidebarMode === "disabled" ? "none" : "";
+
   for (const id of SUB_CONTROLS) {
     const el = document.getElementById(id);
     if (!el) continue;
-    el.disabled = !mainOn;
-    el.closest(".row")?.classList.toggle("dimmer", !mainOn);
+    const sidebarOnly = SIDEBAR_ONLY_CONTROLS.has(id);
+    const disabled = !extensionOn || (id === "commentsWidth" ? sidebarMode === "disabled" : sidebarMode !== "default" && sidebarOnly);
+    el.disabled = disabled;
+    el.closest(".row")?.classList.toggle("dimmer", disabled);
     if (id === "commentsWidth") {
-      el.previousElementSibling?.classList.toggle("dimmer", !mainOn);
-      el.classList.toggle("dimmer", !mainOn);
+      el.previousElementSibling?.classList.toggle("dimmer", disabled);
+      el.classList.toggle("dimmer", disabled);
     }
   }
 }
@@ -82,7 +110,7 @@ async function updateShortcutLabel() {
   const info = await chrome.runtime.getPlatformInfo();
   const shortcut =
     info.os === "mac" ? "⌘+Shift+Y" : info.os === "linux" ? "Ctrl+Shift+U" : "Ctrl+Shift+Y";
-  toggleLabel.textContent = `Sidebar (${shortcut})`;
+  if (extensionToggleLabel) extensionToggleLabel.textContent = `Extension (${shortcut})`;
 }
 
 async function sendToActiveTab(message) {
@@ -96,21 +124,16 @@ async function sendToActiveTab(message) {
 }
 chrome.storage.local.get(STORAGE_KEYS, (d) => {
   currentThemeOverride = d.themeOverride;
+  const sidebarMode = d.sidebarMode ?? DEFAULTS.sidebarMode;
 
-  toggle.checked = d.sidebarEnabled ?? DEFAULTS.sidebarEnabled;
+  if (extensionToggle) extensionToggle.checked = d.extensionEnabled ?? DEFAULTS.extensionEnabled;
+  setSidebarMode(sidebarMode);
   
   for (const id of SUB_CONTROLS) {
     const el = document.getElementById(id);
     if (!el) continue;
     if (id === "commentsWidth") {
-      const val = d.commentsWidth ?? DEFAULTS.commentsWidth;
-      if (val != null) {
-        el.value = val;
-        commentsWidthValue.textContent = `${val}%`;
-      } else {
-        el.value = "";
-        commentsWidthValue.textContent = "Auto";
-      }
+      setCommentsWidthDisplay(d.commentsWidth ?? DEFAULTS.commentsWidth);
       continue;
     }
     if (el.tagName === "INPUT" && el.type !== "checkbox") continue;
@@ -118,7 +141,7 @@ chrome.storage.local.get(STORAGE_KEYS, (d) => {
   }
 
   applyThemeWithOverride();
-  setSubEnabled(toggle.checked);
+  syncAvailabilityFromCurrentState();
 });
 updateShortcutLabel();
 
@@ -135,11 +158,18 @@ themeToggle.addEventListener("click", async () => {
   applyTheme(nextTheme);
 });
 
-toggle.addEventListener("change", async (e) => {
+extensionToggle?.addEventListener("change", async (e) => {
   const enabled = e.target.checked;
-  await chrome.storage.local.set({ sidebarEnabled: enabled });
-  setSubEnabled(enabled);
-  await sendToActiveTab({ action: "toggleCommentsSidebar" });
+  await chrome.storage.local.set({ extensionEnabled: enabled });
+  syncAvailabilityFromCurrentState();
+  await sendToActiveTab({ action: "setLayoutSettings" });
+});
+
+sidebarModeSelect?.addEventListener("change", async (e) => {
+  const mode = e.target.value;
+  await chrome.storage.local.set({ sidebarMode: mode });
+  syncAvailabilityFromCurrentState();
+  await sendToActiveTab({ action: "setLayoutSettings" });
 });
 
 for (const id of SUB_CONTROLS) {
@@ -149,16 +179,15 @@ for (const id of SUB_CONTROLS) {
   if (el.type === "range") {
     el.addEventListener("input", async (e) => {
       const value = parseInt(e.target.value);
-      commentsWidthValue.textContent = `${value}%`;
+      setCommentsWidthDisplay(value);
       await chrome.storage.local.set({ [id]: value });
-      if (action) await sendToActiveTab({ action });
     });
 
     el.addEventListener("change", async (e) => {
       const value = parseInt(e.target.value);
-      commentsWidthValue.textContent = `${value}%`;
+      setCommentsWidthDisplay(value);
       await chrome.storage.local.set({ [id]: value });
-      await sendToActiveTab({ action: "refreshLayout" });
+      if (action) await sendToActiveTab({ action, commentsWidth: value });
     });
     continue;
   }
@@ -166,27 +195,34 @@ for (const id of SUB_CONTROLS) {
   el.addEventListener("change", async (e) => {
     const value = e.target.checked;
     await chrome.storage.local.set({ [id]: value });
-    if (action) await sendToActiveTab({ action });
+    if (action) await sendToActiveTab({ action, value });
   });
 }
+
+commentsWidthReset?.addEventListener("click", async () => {
+  if (commentsWidthReset.style.pointerEvents === "none") return;
+  await chrome.storage.local.set({ commentsWidth: null });
+  setCommentsWidthDisplay(null);
+  await sendToActiveTab({ action: "setUiSettings", commentsWidth: null });
+});
 
 resetBtn.addEventListener("click", async () => {
   await chrome.storage.local.set(DEFAULTS);
   
-  toggle.checked = DEFAULTS.sidebarEnabled;
+  if (extensionToggle) extensionToggle.checked = DEFAULTS.extensionEnabled;
+  setSidebarMode(DEFAULTS.sidebarMode);
   for (const id of SUB_CONTROLS) {
     const el = document.getElementById(id);
     if (!el) continue;
     if (id === "commentsWidth") {
-      el.value = "";
-      commentsWidthValue.textContent = "Auto";
+      setCommentsWidthDisplay(DEFAULTS.commentsWidth);
     } else {
       el.checked = DEFAULTS[id];
     }
   }
   
-  setSubEnabled(true);
-  await sendToActiveTab({ action: "toggleCommentsSidebar" });
+  syncAvailabilityFromCurrentState();
+  await sendToActiveTab({ action: "setLayoutSettings" });
 });
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -197,24 +233,22 @@ chrome.storage.onChanged.addListener((changes) => {
     }
   }
 
-  if (changes.sidebarEnabled) {
-    toggle.checked = changes.sidebarEnabled.newValue;
-    setSubEnabled(toggle.checked);
+  if (changes.sidebarMode) {
+    setSidebarMode(changes.sidebarMode.newValue ?? DEFAULTS.sidebarMode);
+  }
+
+  if (changes.extensionEnabled) {
+    if (extensionToggle) extensionToggle.checked = changes.extensionEnabled.newValue;
   }
 
   if (changes.commentsWidth) {
-    const val = changes.commentsWidth.newValue;
-    if (val != null) {
-      commentsWidth.value = val;
-      commentsWidthValue.textContent = `${val}%`;
-    } else {
-      commentsWidth.value = "";
-      commentsWidthValue.textContent = "Auto";
-    }
+    setCommentsWidthDisplay(changes.commentsWidth.newValue);
   }
 
   if (changes.themeOverride) {
     currentThemeOverride = changes.themeOverride.newValue;
     applyThemeWithOverride();
   }
+
+  syncAvailabilityFromCurrentState();
 });
