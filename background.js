@@ -13,8 +13,8 @@ function getActionIconPath(enabled) {
 }
 
 async function syncActionIconFromStorage() {
-  const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
-  chrome.action.setIcon({ path: getActionIconPath(sidebarEnabled ?? true) });
+  const { extensionEnabled } = await chrome.storage.local.get(["extensionEnabled"]);
+  chrome.action.setIcon({ path: getActionIconPath(extensionEnabled ?? true) });
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -28,8 +28,8 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onStartup.addListener(syncActionIconFromStorage);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !changes.sidebarEnabled) return;
-  chrome.action.setIcon({ path: getActionIconPath(changes.sidebarEnabled.newValue) });
+  if (areaName !== "local" || !changes.extensionEnabled) return;
+  chrome.action.setIcon({ path: getActionIconPath(changes.extensionEnabled.newValue) });
 });
 
 chrome.commands.onCommand.addListener(async (command) => {
@@ -38,9 +38,9 @@ chrome.commands.onCommand.addListener(async (command) => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return;
 
-  const { sidebarEnabled } = await chrome.storage.local.get(["sidebarEnabled"]);
-  const newState = !(sidebarEnabled ?? true);
-  await chrome.storage.local.set({ sidebarEnabled: newState });
+  const { extensionEnabled } = await chrome.storage.local.get(["extensionEnabled"]);
+  const newState = !(extensionEnabled ?? true);
+  await chrome.storage.local.set({ extensionEnabled: newState });
 
-  await chrome.tabs.sendMessage(tab.id, { action: "toggleCommentsSidebar" }).catch(() => {});
+  await chrome.tabs.sendMessage(tab.id, { action: "toggleExtension" }).catch(() => {});
 });
