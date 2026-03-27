@@ -13,9 +13,6 @@ Move YouTube comments to the right sidebar on watch pages.
 - `Sidebar`: choose between the custom right-side comments layout, the built-in panel, or disabled.
 - `Expand description`: expand when the extension is enabled; collapse when disabled.
 - `Related videos`: show or hide related videos.
-
-## UI
-
 - `Fullscreen comments`: use YouTube's fullscreen comments button while fullscreen is active.
 - `Hide scrollbar`: hide scrollbars on the comments area. Supports inner (comments section) and outer (entire sidebar) scrollbars separately.
 
@@ -28,7 +25,7 @@ Move YouTube comments to the right sidebar on watch pages.
 
 ## Known Issues
 
-- Video size does not update when adjusting `Comments width` live. It updates after a page reload or toggling fullscreen.
+- builin doesnt always open
 
 ## Defaults
 
@@ -46,11 +43,10 @@ Move YouTube comments to the right sidebar on watch pages.
 
 ## Shortcut
 
-- Windows: `Ctrl+Shift+Y` for the master extension toggle.
-- macOS: `Command+Shift+Y` for the master extension toggle.
-- Linux: `Ctrl+Shift+U` for the master extension toggle.
-
+- Windows: `Ctrl+Shift+Y`
+- macOS: `Command+Shift+Y`
+- Linux: `Ctrl+Shift+U`
 ## Local Development
+1. run ./build.sh (version)
+2. load the zipped folder
 
-1. Copy `manifest.firefox.json` or `manifest.chromium.json` to `manifest.json`.
-2. Load the project folder as an unpacked extension.
