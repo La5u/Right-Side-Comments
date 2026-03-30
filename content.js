@@ -6,7 +6,7 @@ const withDefaults = (values = {}) =>
 const COMMENTS_SHELL_ID = "rsc-comments-shell";
 const COMMENTS_MAX_HEIGHT = "calc(100vh - 75px)";
 const BUILTIN_COMMENT_BUTTON_SELECTOR = ".ytp-fullscreen-quick-actions button[aria-label='Comments']";
-const BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR = "#panels button[aria-label='Close']";
+const BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR = "#panels #visibility-button button";
 
 const supportedVideoPage = () => {
   const pathname = location.pathname || "";
@@ -73,16 +73,27 @@ function resetCommentStyles(comments) {
   Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
-async function setBuiltinCommentPanel(enabled) {
+async function restoreDefaultSidebarLayout(signal) {
+  const sec = qs("div#secondary.ytd-watch-flexy");
+  const comments = qs("ytd-comments#comments");
+  if (!sec || !comments) return false;
+
+  // Restore the default YouTube layout.
+  resetCommentStyles(comments);
+  const below = await waitFor("#below", { signal });
+  if (signal?.aborted || !below) return false;
+  below.append(comments);
+  qs(`#${COMMENTS_SHELL_ID}`, sec)?.remove();
+  return true;
+}
+
+async function openBuiltinComments() {
   const watch = await waitFor("ytd-watch-flexy");
   const player = watch ? await waitFor("#movie_player", { root: watch }) : null;
   const button = player ? await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR, { root: player }) : null;
-  if (button) {
-    if ((button.getAttribute("aria-pressed") === "true") !== enabled) button.click();
-    return true;
-  }
-  if (!enabled) qs(BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR, watch || document)?.click();
-  return false;
+  if (!button) return false;
+  button.click();
+  return true;
 }
 
 function applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}, sec, comments, related) {
@@ -146,13 +157,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
     return applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic }, sec, comments, related);
   }
 
-  // Restore the default YouTube layout.
-  resetCommentStyles(comments);
-  const below = await waitFor("#below", { signal });
-  if (signal.aborted || !below) return false;
-  below.append(comments);
-  qs(`#${COMMENTS_SHELL_ID}`, sec)?.remove();
-  return true;
+  return restoreDefaultSidebarLayout(signal);
 }
 
 function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }, sidebarMode) {
@@ -191,15 +196,27 @@ async function applyDescriptionBehavior(autoExpand) {
   qs("#description-inline-expander tp-yt-paper-button#collapse")?.click();
 }
 
-async function applyBuiltinSidebar(enabled) {
-  await toggleSidebar(false, cachedSettings);
-  await waitFor("ytd-watch-flexy");
-  await waitFor("div#secondary.ytd-watch-flexy");
-  if (enabled) {
-    await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+async function applyFullscreenComments() {
+  if (!cachedSettings.extensionEnabled || !document.fullscreenElement || !cachedSettings.fullscreenComments) return;
+  await applyBuiltinSidebar();
+}
+
+async function applyBuiltinSidebar() {
+  await restoreDefaultSidebarLayout();
+  await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR);
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  await openBuiltinComments();
+}
+
+async function applySidebarLayoutState() {
+  if (!cachedSettings.extensionEnabled) return;
+
+  if (cachedSettings.sidebarMode === "builtin") {
+    await applyBuiltinSidebar();
+  } else {
+    qs(BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR)?.click();
+    await toggleSidebar(cachedSettings.sidebarMode === "default", cachedSettings);
   }
-  await setBuiltinCommentPanel(enabled);
 }
 
 async function applyFromStorage() {
@@ -214,24 +231,16 @@ async function applyFromStorage() {
     root?.style.removeProperty("--comments-width");
     setRelatedDisplay(related, true);
     await toggleSidebar(false, cachedSettings);
-    await setBuiltinCommentPanel(false);
+    qs(BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR)?.click();
     await applyDescriptionBehavior(false);
     return;
   }
-
   setRelatedDisplay(related, cachedSettings.showRelated);
   applyUiSettings(cachedSettings, cachedSettings.sidebarMode);
+  
+  await applySidebarLayoutState();
+  await applyDescriptionBehavior(cachedSettings.sidebarMode !== "disabled" && cachedSettings.autoExpand);
 
-  if (document.fullscreenElement) {
-    await applyBuiltinSidebar(cachedSettings.fullscreenComments);
-  } else if (cachedSettings.sidebarMode === "builtin") {
-    await applyBuiltinSidebar(true);
-  } else {
-    await setBuiltinCommentPanel(false);
-    await toggleSidebar(cachedSettings.sidebarMode === "default", cachedSettings);
-  }
-
-  await applyDescriptionBehavior(cachedSettings.autoExpand);
 }
 
 function scheduleSidebarReflow() {
@@ -248,8 +257,14 @@ function scheduleSidebarReflow() {
 
 applyFromStorage();
 window.addEventListener("yt-navigate-finish", applyFromStorage);
-window.addEventListener("yt-page-data-fetched", applyFromStorage);
-document.addEventListener("fullscreenchange", applyFromStorage);
+window.addEventListener("yt-page-data-fetched", applySidebarLayoutState);
+document.addEventListener("fullscreenchange", async () => {
+  if (document.fullscreenElement) {
+    await applyFullscreenComments();
+  } else {
+    await applySidebarLayoutState();
+  }
+});
 window.addEventListener("resize", scheduleSidebarReflow);
 
 // Keep cachedSettings in sync with storage
@@ -260,14 +275,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       cachedSettings[key] = changes[key].newValue ?? DEFAULT_SETTINGS[key];
     }
   }
-  if (supportedVideoPage() && !document.fullscreenElement) {
-    applyFromStorage();
-  }
 });
 
 const messageHandlers = {
   async setAutoExpand({ value } = {}) {
-    await applyDescriptionBehavior(value ?? cachedSettings.autoExpand);
+    await applyDescriptionBehavior(cachedSettings.sidebarMode !== "disabled" && (value ?? cachedSettings.autoExpand));
   },
   async setShowRelated() {
     if (!cachedSettings.extensionEnabled) {
