@@ -42,5 +42,5 @@ chrome.commands.onCommand.addListener(async (command) => {
   const newState = !(extensionEnabled ?? true);
   await chrome.storage.local.set({ extensionEnabled: newState });
 
-  await chrome.tabs.sendMessage(tab.id, { action: "toggleExtension" }).catch(() => {});
+  await chrome.tabs.sendMessage(tab.id, { action: "setLayoutSettings" }).catch(() => {});
 });

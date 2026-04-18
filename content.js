@@ -204,7 +204,7 @@ async function applyFullscreenComments() {
 async function applyBuiltinSidebar() {
   await restoreDefaultSidebarLayout();
   await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR);
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 400));
   await openBuiltinComments();
 }
 
