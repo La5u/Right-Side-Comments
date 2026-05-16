@@ -75,9 +75,10 @@ function resetCommentStyles(comments) {
 
 function clearUiSettings() {
   const root = document.documentElement;
+  const widthChanged = root?.classList.contains("rsc-custom-width") || root?.style.getPropertyValue("--comments-width");
   root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
   root?.style.removeProperty("--comments-width");
-  window.dispatchEvent(new Event("resize"));
+  if (widthChanged) window.dispatchEvent(new Event("resize"));
 }
 
 async function restoreDefaultSidebarLayout(signal) {
@@ -182,6 +183,7 @@ function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, comme
   const isDefaultSidebar = sidebarMode === "default";
   const nextWidth = sidebarMode !== "disabled" && commentsWidth != null && commentsWidth !== "" ? `${commentsWidth}%` : "";
   const nextHideSideMargins = isDefaultSidebar && Boolean(hideSideMargins);
+  const widthChanged = root.style.getPropertyValue("--comments-width") !== nextWidth;
 
   root.classList.toggle("rsc-compact-margins", isDefaultSidebar && compactMargins);
   root.classList.toggle("rsc-hide-inner-scrollbar", isDefaultSidebar && innerScrollbar);
@@ -195,7 +197,7 @@ function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, comme
     root.style.removeProperty("--comments-width");
   }
 
-  window.dispatchEvent(new Event("resize"));
+  if (widthChanged) window.dispatchEvent(new Event("resize"));
 }
 
 async function applyDescriptionBehavior(autoExpand) {
@@ -281,6 +283,8 @@ window.addEventListener("yt-page-data-fetched", () => {
   if (cachedSettings.sidebarMode !== "builtin") applySidebarLayoutState();
 });
 document.addEventListener("fullscreenchange", async () => {
+  await syncSettings();
+
   if (document.fullscreenElement) {
     await applyFullscreenComments();
   } else {
