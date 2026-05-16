@@ -73,6 +73,13 @@ function resetCommentStyles(comments) {
   Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
+function clearUiSettings() {
+  const root = document.documentElement;
+  root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
+  root?.style.removeProperty("--comments-width");
+  window.dispatchEvent(new Event("resize"));
+}
+
 async function restoreDefaultSidebarLayout(signal) {
   const sec = qs("div#secondary.ytd-watch-flexy");
   const comments = qs("ytd-comments#comments");
@@ -87,51 +94,60 @@ async function restoreDefaultSidebarLayout(signal) {
   return true;
 }
 
-async function openBuiltinComments() {
-  const watch = await waitFor("ytd-watch-flexy");
+async function waitForBuiltinCommentsButton(watch = null) {
+  watch ||= await waitFor("ytd-watch-flexy");
   const player = watch ? await waitFor("#movie_player", { root: watch }) : null;
-  const button = player ? await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR, { root: player }) : null;
-  if (!button) return false;
-  button.click();
-  return true;
+  return player ? waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR, { root: player }) : null;
 }
 
-function applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}, sec, comments, related) {
+async function waitForCurrentWatchVideo(watch) {
+  const videoId = new URL(location.href).searchParams.get("v");
+  if (!videoId) return true;
+
+  watch ||= await waitFor("ytd-watch-flexy");
+  if (!watch) return false;
+
+  return new Promise((resolve) => {
+    const startedAt = performance.now();
+    const tick = () => {
+      if (watch.getAttribute("video-id") === videoId) return resolve(true);
+      if (performance.now() - startedAt > 5000) return resolve(false);
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
+function applySidebarOrder({ showRelated, staticCommentBox: isStatic } = {}, sec, comments, related) {
   if (!sec || !comments) return false;
 
   const shell = qs(`#${COMMENTS_SHELL_ID}`, sec);
   setRelatedDisplay(related, showRelated);
 
-  if (sidebarEnabled) {
-    // Fixes YouTube reordering comments/related videos when the watch page crosses a resize breakpoint.
-    const useStaticBox = isStatic !== false;
-    if (!useStaticBox) {
-      Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
-      if (showRelated && related?.parentNode === sec) {
-        sec.insertBefore(comments, related);
-      } else {
-        sec.append(comments);
-      }
-
-      if (showRelated && related?.parentNode !== sec) sec.append(related);
-      shell?.remove();
-      return true;
+  // Fixes YouTube reordering comments/related videos when the watch page crosses a resize breakpoint.
+  const useStaticBox = isStatic !== false;
+  if (!useStaticBox) {
+    Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
+    if (showRelated && related?.parentNode === sec) {
+      sec.insertBefore(comments, related);
+    } else {
+      sec.append(comments);
     }
 
-    // Fixes the same responsive reorder while preserving the persistent shell container.
-    const ensuredShell = ensureCommentsShell(sec);
-    resetCommentStyles(comments);
-    if (comments.parentNode !== ensuredShell) ensuredShell?.append(comments);
-
-    if (showRelated && related?.parentNode === sec) sec.insertBefore(ensuredShell, related);
-    else if (!sec.contains(ensuredShell)) sec.append(ensuredShell);
     if (showRelated && related?.parentNode !== sec) sec.append(related);
+    shell?.remove();
     return true;
   }
 
-  // Restore the default YouTube layout.
+  // Fixes the same responsive reorder while preserving the persistent shell container.
+  const ensuredShell = ensureCommentsShell(sec);
   resetCommentStyles(comments);
-  return false;
+  if (comments.parentNode !== ensuredShell) ensuredShell?.append(comments);
+
+  if (showRelated && related?.parentNode === sec) sec.insertBefore(ensuredShell, related);
+  else if (!sec.contains(ensuredShell)) sec.append(ensuredShell);
+  if (showRelated && related?.parentNode !== sec) sec.append(related);
+  return true;
 }
 
 async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}) {
@@ -140,6 +156,10 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
   activeToggleController?.abort();
   activeToggleController = new AbortController();
   const signal = activeToggleController.signal;
+
+  if (!sidebarEnabled) {
+    return restoreDefaultSidebarLayout(signal);
+  }
 
   const [sec, comments] = await Promise.all([
     waitFor("div#secondary.ytd-watch-flexy", { signal }), // full name required so it only works on watch pages
@@ -153,11 +173,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
     return false;
   }
 
-  if (sidebarEnabled) {
-    return applySidebarOrder(sidebarEnabled, { showRelated, staticCommentBox: isStatic }, sec, comments, related);
-  }
-
-  return restoreDefaultSidebarLayout(signal);
+  return applySidebarOrder({ showRelated, staticCommentBox: isStatic }, sec, comments, related);
 }
 
 function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }, sidebarMode) {
@@ -196,16 +212,22 @@ async function applyDescriptionBehavior(autoExpand) {
   qs("#description-inline-expander tp-yt-paper-button#collapse")?.click();
 }
 
+async function openBuiltinSidebar({ waitForCurrentVideo = false } = {}) {
+  await restoreDefaultSidebarLayout();
+  const watch = await waitFor("ytd-watch-flexy");
+  if (waitForCurrentVideo && !(await waitForCurrentWatchVideo(watch))) return false;
+  const button = await waitForBuiltinCommentsButton(watch);
+  button?.click();
+  return Boolean(button);
+}
+
 async function applyFullscreenComments() {
   if (!cachedSettings.extensionEnabled || !document.fullscreenElement || !cachedSettings.fullscreenComments) return;
-  await applyBuiltinSidebar();
+  await openBuiltinSidebar();
 }
 
 async function applyBuiltinSidebar() {
-  await restoreDefaultSidebarLayout();
-  await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR);
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  await openBuiltinComments();
+  await openBuiltinSidebar({ waitForCurrentVideo: true });
 }
 
 async function applySidebarLayoutState() {
@@ -226,20 +248,18 @@ async function applyFromStorage() {
   const related = qs("#related");
 
   if (!cachedSettings.extensionEnabled) {
-    const root = document.documentElement;
-    root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
-    root?.style.removeProperty("--comments-width");
+    clearUiSettings();
     setRelatedDisplay(related, true);
     await toggleSidebar(false, cachedSettings);
     qs(BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR)?.click();
     await applyDescriptionBehavior(false);
     return;
   }
-  setRelatedDisplay(related, cachedSettings.showRelated);
+  if (cachedSettings.sidebarMode !== "default") setRelatedDisplay(related, cachedSettings.showRelated);
   applyUiSettings(cachedSettings, cachedSettings.sidebarMode);
   
   await applySidebarLayoutState();
-  await applyDescriptionBehavior(cachedSettings.sidebarMode !== "disabled" && cachedSettings.autoExpand);
+  await applyDescriptionBehavior(cachedSettings.autoExpand);
 
 }
 
@@ -251,13 +271,15 @@ function scheduleSidebarReflow() {
     const sec = qs("div#secondary.ytd-watch-flexy");
     const comments = qs("ytd-comments#comments");
     const related = qs("#related");
-    applySidebarOrder(true, cachedSettings, sec, comments, related);
+    applySidebarOrder(cachedSettings, sec, comments, related);
   });
 }
 
 applyFromStorage();
 window.addEventListener("yt-navigate-finish", applyFromStorage);
-window.addEventListener("yt-page-data-fetched", applySidebarLayoutState);
+window.addEventListener("yt-page-data-fetched", () => {
+  if (cachedSettings.sidebarMode !== "builtin") applySidebarLayoutState();
+});
 document.addEventListener("fullscreenchange", async () => {
   if (document.fullscreenElement) {
     await applyFullscreenComments();
@@ -279,7 +301,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 const messageHandlers = {
   async setAutoExpand({ value } = {}) {
-    await applyDescriptionBehavior(cachedSettings.sidebarMode !== "disabled" && (value ?? cachedSettings.autoExpand));
+    await applyDescriptionBehavior(value ?? cachedSettings.autoExpand);
   },
   async setShowRelated() {
     if (!cachedSettings.extensionEnabled) {
@@ -294,9 +316,7 @@ const messageHandlers = {
   },
   async setUiSettings({ commentsWidth } = {}) {
     if (!cachedSettings.extensionEnabled) {
-      const root = document.documentElement;
-      root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
-      root?.style.removeProperty("--comments-width");
+      clearUiSettings();
       return;
     }
     applyUiSettings(
