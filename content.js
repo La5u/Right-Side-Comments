@@ -162,13 +162,13 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
     return restoreDefaultSidebarLayout(signal);
   }
 
-  const [sec, comments] = await Promise.all([
+  const [sec, comments, related] = await Promise.all([
     waitFor("div#secondary.ytd-watch-flexy", { signal }), // full name required so it only works on watch pages
     waitFor("ytd-comments#comments", { signal }),
+    showRelated ? waitFor("#related", { signal }) : null,
   ]);
   if (signal.aborted || !sec) return false;
 
-  const related = qs("#related");
   if (!comments) {
     qs(`#${COMMENTS_SHELL_ID}`, sec)?.remove();
     return false;
