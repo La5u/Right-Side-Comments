@@ -44,6 +44,7 @@ const SIDEBAR_ONLY_CONTROLS = new Set([
   "compactMargins",
   "innerScrollbar",
   "staticCommentBox",
+  "pinComments",
   "hideSideMargins",
 ]);
 
@@ -195,7 +196,7 @@ for (const id of SUB_CONTROLS) {
   el.addEventListener("change", async (e) => {
     const value = e.target.checked;
     await chrome.storage.local.set({ [id]: value });
-    if (action) await sendToActiveTab({ action, value });
+    if (action) await sendToActiveTab({ action, key: id, value });
   });
 }
 

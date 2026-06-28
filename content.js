@@ -73,6 +73,25 @@ function resetCommentStyles(comments) {
   Object.assign(comments.style, { maxHeight: "", overflowY: "" });
 }
 
+function placeSidebarNode(sec, node, { related, pinComments } = {}) {
+  if (!sec || !node) return false;
+
+  if (pinComments) {
+    const anchor = qs("#secondary-inner", sec) || sec.firstElementChild;
+    if (anchor && anchor !== node && anchor.parentNode === sec) sec.insertBefore(node, anchor);
+    else if (node.parentNode !== sec) sec.append(node);
+    return true;
+  }
+
+  if (related?.parentNode && related.parentNode !== node) {
+    related.parentNode.insertBefore(node, related);
+    return true;
+  }
+
+  if (node.parentNode !== sec) sec.append(node);
+  return true;
+}
+
 function clearUiSettings() {
   const root = document.documentElement;
   const widthChanged = root?.classList.contains("rsc-custom-width") || root?.style.getPropertyValue("--comments-width");
@@ -119,23 +138,19 @@ async function waitForCurrentWatchVideo(watch) {
   });
 }
 
-function applySidebarOrder({ showRelated, staticCommentBox: isStatic } = {}, sec, comments, related) {
+function applySidebarOrder({ showRelated, staticCommentBox: isStatic, pinComments } = {}, sec, comments, related) {
   if (!sec || !comments) return false;
 
   const shell = qs(`#${COMMENTS_SHELL_ID}`, sec);
-  setRelatedDisplay(related, showRelated);
+  const relatedEl = related || qs("#related", sec);
+  setRelatedDisplay(relatedEl, showRelated);
 
   // Fixes YouTube reordering comments/related videos when the watch page crosses a resize breakpoint.
   const useStaticBox = isStatic !== false;
   if (!useStaticBox) {
     Object.assign(comments.style, { maxHeight: COMMENTS_MAX_HEIGHT, overflowY: "auto" });
-    if (showRelated && related?.parentNode === sec) {
-      sec.insertBefore(comments, related);
-    } else {
-      sec.append(comments);
-    }
+    placeSidebarNode(sec, comments, { related: relatedEl, pinComments });
 
-    if (showRelated && related?.parentNode !== sec) sec.append(related);
     shell?.remove();
     return true;
   }
@@ -145,13 +160,11 @@ function applySidebarOrder({ showRelated, staticCommentBox: isStatic } = {}, sec
   resetCommentStyles(comments);
   if (comments.parentNode !== ensuredShell) ensuredShell?.append(comments);
 
-  if (showRelated && related?.parentNode === sec) sec.insertBefore(ensuredShell, related);
-  else if (!sec.contains(ensuredShell)) sec.append(ensuredShell);
-  if (showRelated && related?.parentNode !== sec) sec.append(related);
+  placeSidebarNode(sec, ensuredShell, { related: relatedEl, pinComments });
   return true;
 }
 
-async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic } = {}) {
+async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic, pinComments } = {}) {
   if (!supportedVideoPage()) return;
 
   activeToggleController?.abort();
@@ -165,7 +178,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
   const [sec, comments, related] = await Promise.all([
     waitFor("div#secondary.ytd-watch-flexy", { signal }), // full name required so it only works on watch pages
     waitFor("ytd-comments#comments", { signal }),
-    showRelated ? waitFor("#related", { signal }) : null,
+    showRelated ? waitFor("#related", { signal }) : qs("#related"),
   ]);
   if (signal.aborted || !sec) return false;
 
@@ -174,7 +187,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
     return false;
   }
 
-  return applySidebarOrder({ showRelated, staticCommentBox: isStatic }, sec, comments, related);
+  return applySidebarOrder({ showRelated, staticCommentBox: isStatic, pinComments }, sec, comments, related);
 }
 
 function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }, sidebarMode) {
@@ -307,16 +320,17 @@ const messageHandlers = {
   async setAutoExpand({ value } = {}) {
     await applyDescriptionBehavior(value ?? cachedSettings.autoExpand);
   },
-  async setShowRelated() {
+  async setShowRelated({ value } = {}) {
+    const showRelated = value ?? cachedSettings.showRelated;
     if (!cachedSettings.extensionEnabled) {
       setRelatedDisplay(qs("#related"), true);
       return;
     }
     if (cachedSettings.sidebarMode === "default" && !document.fullscreenElement) {
-      await toggleSidebar(true, cachedSettings);
+      await toggleSidebar(true, { ...cachedSettings, showRelated });
       return;
     }
-    setRelatedDisplay(qs("#related"), cachedSettings.showRelated);
+    setRelatedDisplay(qs("#related"), showRelated);
   },
   async setUiSettings({ commentsWidth } = {}) {
     if (!cachedSettings.extensionEnabled) {
@@ -328,7 +342,15 @@ const messageHandlers = {
       cachedSettings.sidebarMode,
     );
   },
-  setLayoutSettings: applyFromStorage,
+  async setLayoutSettings({ key, value } = {}) {
+    if (!key) {
+      await applyFromStorage();
+      return;
+    }
+    await syncSettings();
+    if (SETTINGS_KEYS.includes(key)) cachedSettings[key] = value ?? DEFAULT_SETTINGS[key];
+    await applySidebarLayoutState();
+  },
 };
 
 chrome.runtime.onMessage.addListener(async (message = {}) => {
