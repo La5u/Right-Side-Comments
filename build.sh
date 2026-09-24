@@ -26,7 +26,7 @@ for browser in chromium firefox; do
   # Copy all other files, excluding unwanted ones
   for item in *; do
     case "$item" in
-      .git|docs|README.md|build.sh|manifest.json|manifest.*.json|*.zip|build_temp_*|a)
+      .git|docs|README.md|NOTES.md|build.sh|manifest.json|manifest.*.json|*.zip|build_temp_*|a)
         continue
         ;;
     esac

@@ -5,15 +5,27 @@ const withDefaults = (values = {}) =>
   Object.fromEntries(SETTINGS_KEYS.map((key) => [key, values[key] ?? DEFAULT_SETTINGS[key]]));
 const COMMENTS_SHELL_ID = "rsc-comments-shell";
 const COMMENTS_MAX_HEIGHT = "calc(100vh - 75px)";
-const BUILTIN_COMMENT_BUTTON_SELECTOR = ".ytp-fullscreen-quick-actions button[aria-label='Comments']";
-const BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR = "#panels #visibility-button button";
+// Comments is the only toggle directly under the player's quick actions (like/dislike are nested); aria-label is localized.
+const BUILTIN_COMMENT_BUTTON_SELECTOR = "yt-player-quick-action-buttons > toggle-button-view-model button";
+// Only the expanded comments panel, so other panels the user opened (transcript, chapters) stay open.
+const BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR = "[target-id=engagement-panel-comments-section][visibility$=EXPANDED] #visibility-button button";
 
 const supportedVideoPage = () => {
   const pathname = location.pathname || "";
   return pathname === "/watch" || pathname.startsWith("/live/");
 };
 
-let activeToggleController = null;
+// One controller per kind of work: starting a new run aborts the previous run's pending waits.
+const runControllers = {};
+function startRun(name) {
+  runControllers[name]?.abort();
+  runControllers[name] = new AbortController();
+  return runControllers[name].signal;
+}
+function abortRuns() {
+  for (const controller of Object.values(runControllers)) controller.abort();
+}
+
 let cachedSettings = { ...DEFAULT_SETTINGS };
 let resizeRafId = 0;
 
@@ -21,7 +33,7 @@ async function syncSettings() {
   cachedSettings = withDefaults(await chrome.storage.local.get(SETTINGS_KEYS));
 }
 
-function waitFor(target, { signal, root = document.body } = {}) {
+function waitFor(target, { signal, root = document.documentElement } = {}) {
   if (!root) return Promise.resolve(null);
 
   return new Promise((resolve) => {
@@ -95,7 +107,7 @@ function placeSidebarNode(sec, node, { related, pinComments } = {}) {
 function clearUiSettings() {
   const root = document.documentElement;
   const widthChanged = root?.classList.contains("rsc-custom-width") || root?.style.getPropertyValue("--comments-width");
-  root?.classList.remove("rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
+  root?.classList.remove("rsc-enabled", "rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
   root?.style.removeProperty("--comments-width");
   if (widthChanged) window.dispatchEvent(new Event("resize"));
 }
@@ -114,22 +126,14 @@ async function restoreDefaultSidebarLayout(signal) {
   return true;
 }
 
-async function waitForBuiltinCommentsButton(watch = null) {
-  watch ||= await waitFor("ytd-watch-flexy");
-  const player = watch ? await waitFor("#movie_player", { root: watch }) : null;
-  return player ? waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR, { root: player }) : null;
-}
-
-async function waitForCurrentWatchVideo(watch) {
+async function waitForCurrentWatchVideo(watch, signal) {
   const videoId = new URL(location.href).searchParams.get("v");
   if (!videoId) return true;
-
-  watch ||= await waitFor("ytd-watch-flexy");
-  if (!watch) return false;
 
   return new Promise((resolve) => {
     const startedAt = performance.now();
     const tick = () => {
+      if (signal?.aborted) return resolve(false);
       if (watch.getAttribute("video-id") === videoId) return resolve(true);
       if (performance.now() - startedAt > 5000) return resolve(false);
       requestAnimationFrame(tick);
@@ -164,12 +168,8 @@ function applySidebarOrder({ showRelated, staticCommentBox: isStatic, pinComment
   return true;
 }
 
-async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic, pinComments } = {}) {
+async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: isStatic, pinComments } = {}, signal = startRun("layout")) {
   if (!supportedVideoPage()) return;
-
-  activeToggleController?.abort();
-  activeToggleController = new AbortController();
-  const signal = activeToggleController.signal;
 
   if (!sidebarEnabled) {
     return restoreDefaultSidebarLayout(signal);
@@ -198,6 +198,7 @@ function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, comme
   const nextHideSideMargins = isDefaultSidebar && Boolean(hideSideMargins);
   const widthChanged = root.style.getPropertyValue("--comments-width") !== nextWidth;
 
+  root.classList.add("rsc-enabled");
   root.classList.toggle("rsc-compact-margins", isDefaultSidebar && compactMargins);
   root.classList.toggle("rsc-hide-inner-scrollbar", isDefaultSidebar && innerScrollbar);
   root.classList.toggle("rsc-hide-outer-scrollbar", outerScrollbar);
@@ -214,12 +215,14 @@ function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, comme
 }
 
 async function applyDescriptionBehavior(autoExpand) {
+  const signal = startRun("description");
   if (autoExpand) {
+    // Don't stop early on `is-expanded`: after SPA navigation it's stale from the previous video until YouTube collapses it.
     const readyBtn = await waitFor(() => {
       const btn = qs("#description-inline-expander #expand");
       if (!btn) return null;
       return getComputedStyle(btn).display === "none" ? null : btn;
-    }, { signal: activeToggleController?.signal });
+    }, { signal });
     readyBtn?.click();
     return;
   }
@@ -228,12 +231,15 @@ async function applyDescriptionBehavior(autoExpand) {
 }
 
 async function openBuiltinSidebar({ waitForCurrentVideo = false } = {}) {
-  await restoreDefaultSidebarLayout();
-  const watch = await waitFor("ytd-watch-flexy");
-  if (waitForCurrentVideo && !(await waitForCurrentWatchVideo(watch))) return false;
-  const button = await waitForBuiltinCommentsButton(watch);
-  button?.click();
-  return Boolean(button);
+  if (!supportedVideoPage()) return false;
+  const signal = startRun("layout");
+  await restoreDefaultSidebarLayout(signal);
+  const watch = await waitFor("ytd-watch-flexy", { signal });
+  if (!watch || (waitForCurrentVideo && !(await waitForCurrentWatchVideo(watch, signal)))) return false;
+  const button = await waitFor(BUILTIN_COMMENT_BUTTON_SELECTOR, { root: watch, signal });
+  if (!button || qs(BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR)) return false;
+  button.click();
+  return true;
 }
 
 async function applyFullscreenComments() {
@@ -257,7 +263,10 @@ async function applySidebarLayoutState() {
 }
 
 async function applyFromStorage() {
-  if (!supportedVideoPage()) return;
+  if (!supportedVideoPage()) {
+    abortRuns();
+    return clearUiSettings();
+  }
 
   await syncSettings();
   const related = qs("#related");
@@ -306,7 +315,7 @@ document.addEventListener("fullscreenchange", async () => {
 });
 window.addEventListener("resize", scheduleSidebarReflow);
 
-// Keep cachedSettings in sync with storage
+// Keep cachedSettings in sync with storage; the on/off toggle (popup or shortcut) re-applies every YouTube tab.
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
   for (const key of SETTINGS_KEYS) {
@@ -314,6 +323,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       cachedSettings[key] = changes[key].newValue ?? DEFAULT_SETTINGS[key];
     }
   }
+  if (changes.extensionEnabled) applyFromStorage();
 });
 
 const messageHandlers = {
@@ -353,8 +363,7 @@ const messageHandlers = {
   },
 };
 
-chrome.runtime.onMessage.addListener(async (message = {}) => {
-  const handler = messageHandlers[message.action];
-  if (!handler) return;
-  await handler(message);
+// Don't return the promise: nothing is sent back, and returning it keeps the sender waiting for the whole apply.
+chrome.runtime.onMessage.addListener((message = {}) => {
+  messageHandlers[message.action]?.(message);
 });

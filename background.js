@@ -29,18 +29,13 @@ chrome.runtime.onStartup.addListener(syncActionIconFromStorage);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local" || !changes.extensionEnabled) return;
-  chrome.action.setIcon({ path: getActionIconPath(changes.extensionEnabled.newValue) });
+  chrome.action.setIcon({ path: getActionIconPath(changes.extensionEnabled.newValue ?? true) });
 });
 
+// Content scripts re-apply on the storage change, so no tab lookup or message is needed.
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== "toggle-comments-sidebar") return;
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-
   const { extensionEnabled } = await chrome.storage.local.get(["extensionEnabled"]);
-  const newState = !(extensionEnabled ?? true);
-  await chrome.storage.local.set({ extensionEnabled: newState });
-
-  await chrome.tabs.sendMessage(tab.id, { action: "setLayoutSettings" }).catch(() => {});
+  await chrome.storage.local.set({ extensionEnabled: !(extensionEnabled ?? true) });
 });

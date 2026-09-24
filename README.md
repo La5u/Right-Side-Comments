@@ -23,10 +23,6 @@ Move YouTube comments to the right sidebar on watch pages.
 - `Static comment box`: keeps a fixed container in place while comments load, preventing UI layout shifts.
 - `Hide side margins`: remove spacing on the left and right sides of the video.
 
-## Known Issues
-
-- builin doesnt always open
-
 ## Defaults
 
 - `extensionEnabled: true`
@@ -50,3 +46,6 @@ Move YouTube comments to the right sidebar on watch pages.
 1. run ./build.sh (version)
 2. load the zipped folder
 
+## Todo
+
+- Add an in-page toggle to the YouTube comments header for switching between the right sidebar and the normal comments position.

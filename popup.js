@@ -12,7 +12,10 @@ const COMMENTS_WIDTH_AUTO_LABEL = "Auto";
 
 // Collapsible sections
 const defaults = { advanced: false };
-let state = JSON.parse(localStorage.getItem("rsc-sections"));
+let state = null;
+try {
+  state = JSON.parse(localStorage.getItem("rsc-sections"));
+} catch {}
 if (!state) state = { ...defaults };
 
 function setSectionExpanded(title, content, isOpen) {
@@ -107,11 +110,11 @@ function syncControlAvailability(extensionOn, sidebarMode) {
   }
 }
 
+// Show the actual binding: users can rebind it, and the suggested key is left unassigned on conflicts.
 async function updateShortcutLabel() {
-  const info = await chrome.runtime.getPlatformInfo();
-  const shortcut =
-    info.os === "mac" ? "⌘+Shift+Y" : info.os === "linux" ? "Ctrl+Shift+U" : "Ctrl+Shift+Y";
-  if (extensionToggleLabel) extensionToggleLabel.textContent = `Extension (${shortcut})`;
+  const commands = await chrome.commands.getAll();
+  const shortcut = commands.find((c) => c.name === "toggle-comments-sidebar")?.shortcut;
+  if (extensionToggleLabel) extensionToggleLabel.textContent = shortcut ? `Extension (${shortcut})` : "Extension";
 }
 
 async function sendToActiveTab(message) {
@@ -163,7 +166,6 @@ extensionToggle?.addEventListener("change", async (e) => {
   const enabled = e.target.checked;
   await chrome.storage.local.set({ extensionEnabled: enabled });
   syncAvailabilityFromCurrentState();
-  await sendToActiveTab({ action: "setLayoutSettings" });
 });
 
 sidebarModeSelect?.addEventListener("change", async (e) => {
@@ -230,7 +232,7 @@ chrome.storage.onChanged.addListener((changes) => {
   for (const key in changes) {
     const el = document.getElementById(key);
     if (!el || el.type === "checkbox") {
-      if (el) el.checked = changes[key].newValue;
+      if (el) el.checked = changes[key].newValue ?? DEFAULTS[key];
     }
   }
 
@@ -239,7 +241,7 @@ chrome.storage.onChanged.addListener((changes) => {
   }
 
   if (changes.extensionEnabled) {
-    if (extensionToggle) extensionToggle.checked = changes.extensionEnabled.newValue;
+    if (extensionToggle) extensionToggle.checked = changes.extensionEnabled.newValue ?? DEFAULTS.extensionEnabled;
   }
 
   if (changes.commentsWidth) {

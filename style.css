@@ -1,49 +1,49 @@
 /* Remove space on top of comments */
-#header ytd-comments-header-renderer {
+html.rsc-enabled #header ytd-comments-header-renderer {
   margin-top: 0;
 }
 /* add extra space*/
-html.rsc-compact-margins div.ytSubThreadSubThreadContent {
+html.rsc-enabled.rsc-compact-margins div.ytSubThreadSubThreadContent {
   margin-left: 0;
   margin-top: 8px;
 }
 
-ytd-comments#comments {
+html.rsc-enabled ytd-comments#comments {
   margin-bottom: 20px;
 }
 
-#rsc-comments-shell > ytd-comments#comments {
+html.rsc-enabled #rsc-comments-shell > ytd-comments#comments {
   margin-bottom: 0;
 }
 
 /* Hide side margins */
-html.rsc-hide-side-margins #columns {
+html.rsc-enabled.rsc-hide-side-margins #columns {
   max-width: none !important;
   margin: 0 !important;
 }
 
 /* Inner scrollbar - hides scrollbar on comments box */
-html.rsc-hide-inner-scrollbar ytd-comments#comments,
-html.rsc-hide-inner-scrollbar #rsc-comments-shell {
+html.rsc-enabled.rsc-hide-inner-scrollbar ytd-comments#comments,
+html.rsc-enabled.rsc-hide-inner-scrollbar #rsc-comments-shell {
   scrollbar-width: none;
 }
 
-html.rsc-hide-inner-scrollbar ytd-comments#comments::-webkit-scrollbar,
-html.rsc-hide-inner-scrollbar #rsc-comments-shell::-webkit-scrollbar {
+html.rsc-enabled.rsc-hide-inner-scrollbar ytd-comments#comments::-webkit-scrollbar,
+html.rsc-enabled.rsc-hide-inner-scrollbar #rsc-comments-shell::-webkit-scrollbar {
   display: none;
 }
 
 /* Outer scrollbar - hides scrollbar on whole page */
-html.rsc-hide-outer-scrollbar {
+html.rsc-enabled.rsc-hide-outer-scrollbar {
   scrollbar-width: none;
 }
 
-html.rsc-hide-outer-scrollbar::-webkit-scrollbar {
+html.rsc-enabled.rsc-hide-outer-scrollbar::-webkit-scrollbar {
   display: none;
 }
 
 /* Comments width - only when user has set it */
-html.rsc-custom-width #secondary.ytd-watch-flexy {
+html.rsc-enabled.rsc-custom-width #secondary.ytd-watch-flexy {
   width: var(--comments-width) !important;
   flex: 0 0 var(--comments-width) !important;
 }
