@@ -18,7 +18,10 @@
     <div class="section-divider" aria-hidden="true"></div>
 
     <div class="row">
-      <label for="sidebarMode">Sidebar</label>
+      <span class="label-with-info">
+        <label for="sidebarMode">Sidebar</label>
+        <span class="info" tabindex="0" aria-label="About sidebar modes" data-tip="Default: moves the comments from below the video to the right side. Built-in: uses YouTube's own comments side panel, which normally isn't reachable without commands.">i</span>
+      </span>
       <select id="sidebarMode" class="mode-select">
         <option value="default">Default</option>
         <option value="builtin">Built-in</option>
@@ -51,6 +54,17 @@
     </div>
 
     <div class="row">
+      <span class="label-with-info">
+        <label for="spoilerMode">Spoiler mode</label>
+        <span class="info" tabindex="0" aria-label="About spoiler mode" data-tip="Blurs comments until you hover over them.">i</span>
+      </span>
+      <label class="switch">
+        <input type="checkbox" id="spoilerMode" data-action="setLayoutSettings" />
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="row">
       <label class="scrollbar-label">Hide scrollbar</label>
       <div class="scrollbar-options">
         <label class="checkbox-label">
@@ -70,7 +84,7 @@
         <label>Comments width</label>
         <div class="slider-container">
           <span id="commentsWidthValue">Auto</span>
-          <span id="commentsWidthReset" class="footer-link subtle-button">Reset</span>
+          <span id="commentsWidthReset" class="footer-link">Reset</span>
         </div>
       </div>
       <input type="range" id="commentsWidth" min="15" max="40" step="1" class="width-slider" data-action="setUiSettings" />
@@ -84,7 +98,10 @@
       </div>
 
       <div class="row">
-        <label for="staticCommentBox">Static comment box</label>
+        <span class="label-with-info">
+          <label for="staticCommentBox">Static comment box</label>
+          <span class="info" tabindex="0" aria-label="About static comment box" data-tip="Keeps a fixed container in place while comments load, preventing UI layout shifts.">i</span>
+        </span>
         <label class="switch">
           <input type="checkbox" id="staticCommentBox" data-action="setLayoutSettings" />
           <span class="slider"></span>

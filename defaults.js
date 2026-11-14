@@ -8,6 +8,8 @@ self.RSC_DEFAULTS = {
   outerScrollbar: false,
   compactMargins: true,
   staticCommentBox: true,
+  spoilerMode: false,
+  spoilerBlur: true,
   pinComments: false,
   fullscreenComments: false,
   commentsWidth: null,

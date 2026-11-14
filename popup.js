@@ -197,7 +197,8 @@ for (const id of SUB_CONTROLS) {
 
   el.addEventListener("change", async (e) => {
     const value = e.target.checked;
-    await chrome.storage.local.set({ [id]: value });
+    // Turning spoiler mode on always starts blurred, even if the in-page eye was last switched off.
+    await chrome.storage.local.set({ [id]: value, ...(id === "spoilerMode" && value && { spoilerBlur: true }) });
     if (action) await sendToActiveTab({ action, key: id, value });
   });
 }

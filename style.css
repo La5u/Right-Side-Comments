@@ -16,6 +16,66 @@ html.rsc-enabled #rsc-comments-shell > ytd-comments#comments {
   margin-bottom: 0;
 }
 
+/* Blur the comments panel until it is hovered */
+html.rsc-enabled.rsc-spoiler :is(#rsc-comments-shell, ytd-comments#comments:not(#rsc-comments-shell *), ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]) {
+  filter: blur(12px);
+}
+
+html.rsc-enabled.rsc-spoiler :is(#rsc-comments-shell, ytd-comments#comments:not(#rsc-comments-shell *), ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"]):hover {
+  filter: none;
+}
+
+/* In-page blur toggle next to the comments sort menu; newer YouTube builds only define the --yt-sys-color-baseline tokens */
+html.rsc-enabled #rsc-blur-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--yt-spec-text-primary, var(--yt-sys-color-baseline--text-primary));
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+/* Keep "Sort by" on one line in narrow sidebars now that the button sits next to it */
+html.rsc-enabled ytd-comments-header-renderer #sort-menu:has(+ #rsc-blur-toggle) {
+  white-space: nowrap;
+}
+
+/* Let the sort row fill the header so the blur button reaches the right edge */
+html.rsc-enabled ytd-comments-header-renderer #additional-section:has(> #rsc-blur-toggle) {
+  flex-grow: 1;
+}
+
+html.rsc-enabled ytd-engagement-panel-title-header-renderer #rsc-blur-toggle {
+  width: 40px;
+  height: 40px;
+  margin: 0 4px 0 0;
+}
+
+html.rsc-enabled #rsc-blur-toggle:hover,
+html.rsc-enabled #rsc-blur-toggle:focus-visible {
+  background: var(--yt-spec-10-percent-layer, var(--yt-sys-color-baseline--mono-tonal-hover));
+  outline: none;
+}
+
+html.rsc-enabled #rsc-blur-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+html.rsc-enabled #rsc-blur-toggle[aria-pressed="true"] .rsc-eye,
+html.rsc-enabled #rsc-blur-toggle:not([aria-pressed="true"]) .rsc-eye-off {
+  display: none;
+}
+
 /* Hide side margins */
 html.rsc-enabled.rsc-hide-side-margins #columns {
   max-width: none !important;

@@ -9,6 +9,12 @@ const COMMENTS_MAX_HEIGHT = "calc(100vh - 75px)";
 const BUILTIN_COMMENT_BUTTON_SELECTOR = "yt-player-quick-action-buttons > toggle-button-view-model button";
 // Only the expanded comments panel, so other panels the user opened (transcript, chapters) stay open.
 const BUILTIN_COMMENT_CLOSE_BUTTON_SELECTOR = "[target-id=engagement-panel-comments-section][visibility$=EXPANDED] #visibility-button button";
+const BUILTIN_COMMENTS_PANEL_SELECTOR = "ytd-engagement-panel-section-list-renderer[target-id=engagement-panel-comments-section]";
+const BLUR_BUTTON_ID = "rsc-blur-toggle";
+const SVG_NS = "http://www.w3.org/2000/svg";
+// Material "visibility" / "visibility_off" icons.
+const EYE_PATH = "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z";
+const EYE_OFF_PATH = "M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z";
 
 const supportedVideoPage = () => {
   const pathname = location.pathname || "";
@@ -104,10 +110,67 @@ function placeSidebarNode(sec, node, { related, pinComments } = {}) {
   return true;
 }
 
+let blurButton = null;
+
+function createBlurButton() {
+  const button = Object.assign(document.createElement("button"), { id: BLUR_BUTTON_ID, type: "button", title: "Blur comments until hovered" });
+  button.setAttribute("aria-label", "Blur comments until hovered");
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  for (const [className, d] of [["rsc-eye", EYE_PATH], ["rsc-eye-off", EYE_OFF_PATH]]) {
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("class", className);
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  button.append(svg);
+  // Only flips the blur; spoiler mode itself stays on. The storage listener updates every tab.
+  button.addEventListener("click", () => chrome.storage.local.set({ spoilerBlur: !cachedSettings.spoilerBlur }));
+  return button;
+}
+
+function updateBlurButton() {
+  blurButton?.setAttribute("aria-pressed", String(Boolean(cachedSettings.spoilerBlur)));
+}
+
+function removeBlurButton() {
+  runControllers.blurButton?.abort();
+  blurButton?.remove();
+}
+
+// Keeps the button next to the comments sort menu, re-placing it whenever YouTube re-renders the header.
+async function placeBlurButton() {
+  if (!supportedVideoPage()) return removeBlurButton();
+  const signal = startRun("blurButton");
+  blurButton ||= createBlurButton();
+  updateBlurButton();
+  const builtin = cachedSettings.sidebarMode === "builtin";
+
+  while (!signal.aborted) {
+    const root = await waitFor(builtin ? BUILTIN_COMMENTS_PANEL_SELECTOR : "ytd-comments#comments", { signal });
+    if (!root?.contains(blurButton)) blurButton.remove();
+    const anchor = await waitFor(builtin ? "ytd-engagement-panel-title-header-renderer #menu" : "ytd-comments-header-renderer #sort-menu", { root, signal });
+    if (!anchor) return;
+    if (builtin) anchor.before(blurButton);
+    else anchor.after(blurButton);
+    await waitFor(() => !blurButton.isConnected || !anchor.isConnected, { root, signal });
+  }
+}
+
+// The button shows while spoiler mode is on; the blur also needs the button's state on. Neither applies without a sidebar.
+function applySpoilerSettings({ spoilerMode, spoilerBlur, sidebarMode } = cachedSettings) {
+  const spoilerOn = Boolean(spoilerMode) && sidebarMode !== "disabled";
+  document.documentElement?.classList.toggle("rsc-spoiler", spoilerOn && Boolean(spoilerBlur));
+  if (spoilerOn) placeBlurButton();
+  else removeBlurButton();
+}
+
 function clearUiSettings() {
+  removeBlurButton();
   const root = document.documentElement;
   const widthChanged = root?.classList.contains("rsc-custom-width") || root?.style.getPropertyValue("--comments-width");
-  root?.classList.remove("rsc-enabled", "rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width");
+  root?.classList.remove("rsc-enabled", "rsc-hide-inner-scrollbar", "rsc-hide-outer-scrollbar", "rsc-compact-margins", "rsc-hide-side-margins", "rsc-custom-width", "rsc-spoiler");
   root?.style.removeProperty("--comments-width");
   if (widthChanged) window.dispatchEvent(new Event("resize"));
 }
@@ -190,7 +253,7 @@ async function toggleSidebar(sidebarEnabled, { showRelated, staticCommentBox: is
   return applySidebarOrder({ showRelated, staticCommentBox: isStatic, pinComments }, sec, comments, related);
 }
 
-function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins }, sidebarMode) {
+function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, commentsWidth, hideSideMargins, spoilerMode, spoilerBlur }, sidebarMode) {
   const root = document.documentElement;
   if (!root) return;
   const isDefaultSidebar = sidebarMode === "default";
@@ -204,6 +267,7 @@ function applyUiSettings({ innerScrollbar, outerScrollbar, compactMargins, comme
   root.classList.toggle("rsc-hide-outer-scrollbar", outerScrollbar);
   root.classList.toggle("rsc-hide-side-margins", nextHideSideMargins);
   root.classList.toggle("rsc-custom-width", Boolean(nextWidth));
+  applySpoilerSettings({ spoilerMode, spoilerBlur, sidebarMode });
 
   if (nextWidth) {
     root.style.setProperty("--comments-width", nextWidth);
@@ -252,6 +316,7 @@ async function applyBuiltinSidebar() {
 }
 
 async function applySidebarLayoutState() {
+  if (!supportedVideoPage()) return;
   if (!cachedSettings.extensionEnabled) return;
 
   if (cachedSettings.sidebarMode === "builtin") {
@@ -324,6 +389,9 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
   }
   if (changes.extensionEnabled) applyFromStorage();
+  else if ((changes.spoilerMode || changes.spoilerBlur || changes.sidebarMode) && cachedSettings.extensionEnabled && supportedVideoPage()) {
+    applySpoilerSettings();
+  }
 });
 
 const messageHandlers = {
@@ -359,6 +427,7 @@ const messageHandlers = {
     }
     await syncSettings();
     if (SETTINGS_KEYS.includes(key)) cachedSettings[key] = value ?? DEFAULT_SETTINGS[key];
+    if (cachedSettings.extensionEnabled && supportedVideoPage()) applyUiSettings(cachedSettings, cachedSettings.sidebarMode);
     await applySidebarLayoutState();
   },
 };
